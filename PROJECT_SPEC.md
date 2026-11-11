@@ -131,13 +131,24 @@ amethystclothing/
 | `GET` | `/checkout` | `views/pages/checkout.php` |
 | `GET` | `/checkout-success` | `views/pages/checkout-success.php` |
 | `GET` | `/invoice` | `views/pages/invoice.php` (printable barcode) |
+| `GET` | `/wishlist` | `views/pages/wishlist.php` (saved pieces archive) |
+| `GET` | `/auth` | `views/pages/auth.php` (phone-first login & register) |
+| `GET` | `/account/dashboard` | `views/pages/account/dashboard.php` (profile, loyalty, orders, addresses) |
+| `GET` | `/account/logout` | `views/pages/account/logout.php` |
 | `GET` | `/admin/login` | `views/pages/admin/login.php` (standalone) |
 | `GET` | `/admin/dashboard` | `views/pages/admin/dashboard.php` (requires admin auth) |
 | `GET` | `/admin/orders` | `views/pages/admin/orders.php` (order fulfillment drawer) |
 | `GET` | `/admin/products` | `views/pages/admin/products.php` (inventory & quick stock) |
+| `GET` | `/admin/reviews` | `views/pages/admin/reviews.php` (customer reviews moderation) |
 | `GET` | `/admin/logout` | `views/pages/admin/logout.php` |
 | `POST` | `/ajax/cart.php` | Session cart operations |
-| `POST` | `/ajax/checkout_process.php` | Atomic order transaction |
+| `POST` | `/ajax/checkout_process.php` | Atomic order transaction with coupon support |
+| `POST` | `/ajax/apply_coupon.php` | Promo code validation & calculation |
+| `POST` | `/ajax/wishlist.php` | Wishlist toggling & session/DB sync |
+| `POST` | `/ajax/submit_review.php` | Customer review submission |
+| `POST` | `/ajax/moderate_review.php` | Admin review approve / reject / delete |
+| `POST` | `/ajax/customer_auth.php` | Customer login & registration |
+| `POST` | `/ajax/save_address.php` | Customer delivery address management |
 | `POST` | `/ajax/admin_auth.php` | Admin authentication endpoint |
 | `POST` | `/ajax/update_order_status.php` | Order status & courier timeline update |
 | `POST` | `/ajax/update_stock.php` | Real-time variant stock adjustment |

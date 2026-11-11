@@ -10,10 +10,12 @@ require_admin_auth();
 $adminUser = admin_user();
 $currentRoute = current_path();
 
-// Quick badge query for pending orders
+// Quick badge query for pending orders and reviews
 $pendingOrdersCount = 0;
+$pendingReviewsCount = 0;
 try {
     $pendingOrdersCount = (int) db()->query("SELECT COUNT(*) FROM orders WHERE order_status IN ('placed', 'confirmed', 'printing_processing')")->fetchColumn();
+    $pendingReviewsCount = (int) db()->query("SELECT COUNT(*) FROM product_reviews WHERE status = 'pending'")->fetchColumn();
 } catch (Exception $e) {}
 
 $pageTitle = $pageTitle ?? 'Admin Console // AMETHYST';
@@ -634,6 +636,16 @@ $pageTitle = $pageTitle ?? 'Admin Console // AMETHYST';
                         <a href="<?= base_url('admin/products') ?>" class="admin-nav-link <?= $currentRoute === 'admin/products' ? 'active' : '' ?>">
                             <span>Inventory & Stock</span>
                             <span style="font-family:'Space Mono';font-size:11px;">03</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav-item">
+                        <a href="<?= base_url('admin/reviews') ?>" class="admin-nav-link <?= $currentRoute === 'admin/reviews' ? 'active' : '' ?>">
+                            <span>Customer Reviews</span>
+                            <?php if ($pendingReviewsCount > 0): ?>
+                                <span class="admin-nav-badge" style="background:#F59E0B;"><?= $pendingReviewsCount ?></span>
+                            <?php else: ?>
+                                <span style="font-family:'Space Mono';font-size:11px;">04</span>
+                            <?php endif; ?>
                         </a>
                     </li>
                 </ul>

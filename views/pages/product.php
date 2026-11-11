@@ -33,6 +33,20 @@ if ($product) {
     $mStmt = $pdo->prepare("SELECT url, alt_text, is_primary FROM product_media WHERE product_id = ? ORDER BY sort_order ASC");
     $mStmt->execute([$product['id']]);
     $mediaItems = $mStmt->fetchAll();
+
+    // Fetch approved customer reviews
+    $rStmt = $pdo->prepare("
+        SELECT pr.*, c.full_name as customer_name
+        FROM product_reviews pr
+        LEFT JOIN customers c ON c.id = pr.customer_id
+        WHERE pr.product_id = ? AND pr.status = 'approved'
+        ORDER BY pr.created_at DESC
+    ");
+    $rStmt->execute([$product['id']]);
+    $reviews = $rStmt->fetchAll();
+
+    // Check wishlist status
+    $inWishlist = in_array((int)$product['id'], $_SESSION['wishlist'] ?? []);
 }
 
 $pageTitle = $product ? e($product['name']) . ' — Amethystclothing.lk' : 'Product — Amethystclothing.lk';
@@ -146,11 +160,21 @@ $primaryImage = !empty($mediaItems[0]['url'])
                         </div>
                     </div>
 
-                    <!-- Action Buttons (Add to Bag / Guest Checkout) -->
+                    <!-- Action Buttons (Add to Bag / Wishlist / Guest Checkout) -->
                     <div class="product-detail__actions">
-                        <button type="button" class="btn btn--brand btn--full" id="add-to-bag-btn">
-                            <?= e(__('add_to_bag')) ?>
-                        </button>
+                        <div style="display:flex;gap:10px;">
+                            <button type="button" class="btn btn--brand btn--full" id="add-to-bag-btn" style="flex:1;">
+                                <?= e(__('add_to_bag')) ?>
+                            </button>
+                            <button type="button" class="btn btn--outline" id="btn-product-wishlist" 
+                                    data-product-id="<?= (int)$product['id'] ?>"
+                                    title="Save to Wishlist"
+                                    style="padding: 0 18px; border-radius: 0; display:flex; align-items:center; justify-content:center; <?= $inWishlist ? 'background:var(--brand-deep);color:#FFF;border-color:var(--brand-deep);' : '' ?>">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="<?= $inWishlist ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                            </button>
+                        </div>
                         <a href="<?= base_url('checkout') ?>" class="btn btn--outline btn--full" id="buy-now-btn" style="margin-top: 10px;">
                             <?= e(__('buy_now_guest')) ?>
                         </a>
@@ -201,9 +225,263 @@ $primaryImage = !empty($mediaItems[0]['url'])
                 </div>
             </div>
 
+            <!-- Customer Reviews & Social Proof Section -->
+            <div class="product-reviews-container" style="margin-top: 60px; padding-top: 50px; border-top: 1px solid var(--border-crisp);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 32px; flex-wrap:wrap; gap:16px;">
+                    <div>
+                        <span style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em; color: var(--brand-deep); text-transform: uppercase;">
+                            VERIFIED BUYER FEEDBACK // SOCIAL PROOF
+                        </span>
+                        <h2 style="font-size: 24px; font-weight: 800; text-transform: uppercase; margin: 4px 0 0; letter-spacing: -0.01em;">
+                            CUSTOMER REVIEWS (<?= count($reviews) ?>)
+                        </h2>
+                    </div>
+
+                    <?php 
+                        $avgRating = $product['average_rating'] ?: 5.0;
+                    ?>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="color: #F59E0B; font-size: 18px; letter-spacing: 2px;">
+                            ★★★★★
+                        </div>
+                        <span style="font-family: var(--font-mono); font-weight: 700; font-size: 15px;">
+                            <?= number_format((float)$avgRating, 1) ?> / 5.0
+                        </span>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1.6fr 1.2fr; gap: 48px; align-items:start;">
+                    <!-- Reviews List -->
+                    <div>
+                        <?php if (empty($reviews)): ?>
+                            <div style="padding: 40px; background: #FFFFFF; border: 1px solid var(--border-crisp); text-align: center;">
+                                <div style="font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">BE THE FIRST TO REVIEW</div>
+                                <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+                                    Own this silhouette? Leave an honest fit and fabric review to help the Amethyst community.
+                                </p>
+                            </div>
+                        <?php else: ?>
+                            <div style="display:flex; flex-direction:column; gap: 20px;">
+                                <?php foreach ($reviews as $rev): ?>
+                                    <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 24px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 10px;">
+                                            <div>
+                                                <div style="color: #F59E0B; font-size: 14px; letter-spacing: 1px; margin-bottom: 4px;">
+                                                    <?= str_repeat('★', (int)$rev['rating']) ?><?= str_repeat('☆', 5 - (int)$rev['rating']) ?>
+                                                </div>
+                                                <h4 style="font-size: 15px; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.02em;">
+                                                    <?= e($rev['review_title']) ?>
+                                                </h4>
+                                            </div>
+                                            <span style="font-family: var(--font-mono); font-size: 11px; color: #8C869B;">
+                                                <?= date('M d, Y', strtotime($rev['created_at'])) ?>
+                                            </span>
+                                        </div>
+
+                                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px;">
+                                            <?= nl2br(e($rev['review_text'])) ?>
+                                        </p>
+
+                                        <div style="display:flex; align-items:center; gap: 12px; font-size: 12px;">
+                                            <strong style="color: var(--text-primary);"><?= e($rev['customer_name'] ?: 'Verified Customer') ?></strong>
+                                            
+                                            <?php if (!empty($rev['is_verified_buyer'])): ?>
+                                                <span style="font-family: var(--font-mono); font-size: 10px; color: #065F46; background: #D1FAE5; padding: 2px 6px; letter-spacing: 0.05em;">
+                                                    &check; VERIFIED BUYER
+                                                </span>
+                                            <?php endif; ?>
+
+                                            <?php if (!empty($rev['purchased_size'])): ?>
+                                                <span style="font-family: var(--font-mono); font-size: 10px; color: #716B80; background: #F4F2F8; padding: 2px 6px;">
+                                                    SIZE: <?= e($rev['purchased_size']) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Write a Review Form -->
+                    <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 32px;">
+                        <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 0 0 6px; letter-spacing: 0.04em;">
+                            WRITE A VERIFIED REVIEW
+                        </h3>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">
+                            Share your feedback on the 240GSM cotton weight, silhouette drop, and wash performance.
+                        </p>
+
+                        <div id="review-feedback" style="display:none; padding:12px; margin-bottom:16px; font-size:13px; line-height:1.4;"></div>
+
+                        <form id="product-review-form">
+                            <input type="hidden" name="product_id" value="<?= (int)$product['id'] ?>">
+
+                            <!-- Rating Picker -->
+                            <div style="margin-bottom: 16px;">
+                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                    YOUR RATING <span style="color:#EF4444;">*</span>
+                                </label>
+                                <div style="display:flex; gap:8px;" id="star-picker">
+                                    <?php for ($s = 1; $s <= 5; $s++): ?>
+                                        <label style="cursor:pointer; display:flex; align-items:center; gap:2px; font-size:13px; padding:6px 10px; border:1px solid var(--border-crisp);">
+                                            <input type="radio" name="rating" value="<?= $s ?>" <?= $s === 5 ? 'checked' : '' ?> style="margin:0;">
+                                            <span><?= $s ?> ★</span>
+                                        </label>
+                                    <?php endfor; ?>
+                                </div>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+                                <div>
+                                    <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                        YOUR NAME <span style="color:#EF4444;">*</span>
+                                    </label>
+                                    <input type="text" name="reviewer_name" value="<?= e(customer_user()['full_name'] ?? '') ?>" placeholder="e.g. Shanuka K." required
+                                           style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
+                                </div>
+
+                                <div>
+                                    <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                        PURCHASED SIZE
+                                    </label>
+                                    <select name="purchased_size" style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; background:#FFF; box-sizing:border-box;">
+                                        <option value="S">Small (S)</option>
+                                        <option value="M" selected>Medium (M)</option>
+                                        <option value="L">Large (L)</option>
+                                        <option value="XL">X-Large (XL)</option>
+                                        <option value="XXL">2X-Large (XXL)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom:14px;">
+                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                    MOBILE NUMBER (FOR BUYER VERIFICATION)
+                                </label>
+                                <input type="tel" name="reviewer_phone" value="<?= e(customer_user()['phone'] ?? '') ?>" placeholder="07XXXXXXXX"
+                                       style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
+                            </div>
+
+                            <div style="margin-bottom:14px;">
+                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                    REVIEW HEADLINE <span style="color:#EF4444;">*</span>
+                                </label>
+                                <input type="text" name="review_title" placeholder="e.g. Best drop shoulder fit in Sri Lanka" required
+                                       style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
+                            </div>
+
+                            <div style="margin-bottom:18px;">
+                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                    DETAILED REVIEW <span style="color:#EF4444;">*</span>
+                                </label>
+                                <textarea name="review_text" rows="4" placeholder="How is the collar tightness, heavy cotton feel, and print longevity?" required
+                                          style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;"></textarea>
+                            </div>
+
+                            <button type="submit" id="btn-submit-review" class="btn btn--brand btn--full" style="padding:12px; font-size:12px; letter-spacing:0.1em; border-radius:0;">
+                                SUBMIT REVIEW FOR VERIFICATION &rarr;
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Pass Variant Data to Frontend for Vanilla JS Reactive Engine -->
             <script id="product-variants-json" type="application/json">
                 <?= json_encode($variants) ?>
+            </script>
+
+            <script>
+                // 1. Wishlist Toggle Button Handler
+                const wishlistBtn = document.getElementById('btn-product-wishlist');
+                if (wishlistBtn) {
+                    wishlistBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const pId = this.dataset.productId;
+                        const svg = this.querySelector('svg');
+                        
+                        const formData = new FormData();
+                        formData.append('product_id', pId);
+                        formData.append('action', 'toggle');
+
+                        fetch('<?= base_url('ajax/wishlist.php') ?>', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Update header badge
+                                const badge = document.getElementById('wishlist-badge');
+                                if (badge) badge.textContent = data.count;
+
+                                if (data.in_wishlist) {
+                                    this.style.background = 'var(--brand-deep)';
+                                    this.style.color = '#FFFFFF';
+                                    this.style.borderColor = 'var(--brand-deep)';
+                                    if (svg) svg.setAttribute('fill', '#FFFFFF');
+                                } else {
+                                    this.style.background = '';
+                                    this.style.color = '';
+                                    this.style.borderColor = '';
+                                    if (svg) svg.setAttribute('fill', 'none');
+                                }
+                            }
+                        })
+                        .catch(err => console.error(err));
+                    });
+                }
+
+                // 2. Submit Review Form Handler
+                const reviewForm = document.getElementById('product-review-form');
+                if (reviewForm) {
+                    reviewForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const btn = document.getElementById('btn-submit-review');
+                        const fb = document.getElementById('review-feedback');
+
+                        fb.style.display = 'none';
+                        btn.disabled = true;
+                        btn.textContent = 'SUBMITTING...';
+
+                        const formData = new FormData(this);
+
+                        fetch('<?= base_url('ajax/submit_review.php') ?>', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            btn.disabled = false;
+                            btn.textContent = 'SUBMIT REVIEW FOR VERIFICATION →';
+
+                            if (data.success) {
+                                fb.style.background = '#D1FAE5';
+                                fb.style.border = '1px solid #A7F3D0';
+                                fb.style.color = '#065F46';
+                                fb.textContent = data.message;
+                                fb.style.display = 'block';
+                                reviewForm.reset();
+                            } else {
+                                fb.style.background = '#FEE2E2';
+                                fb.style.border = '1px solid #FECACA';
+                                fb.style.color = '#991B1B';
+                                fb.textContent = data.message || 'Error submitting review.';
+                                fb.style.display = 'block';
+                            }
+                        })
+                        .catch(err => {
+                            btn.disabled = false;
+                            btn.textContent = 'SUBMIT REVIEW FOR VERIFICATION →';
+                            fb.style.background = '#FEE2E2';
+                            fb.style.border = '1px solid #FECACA';
+                            fb.style.color = '#991B1B';
+                            fb.textContent = 'Network error submitting review.';
+                            fb.style.display = 'block';
+                        });
+                    });
+                }
             </script>
         <?php else: ?>
             <div style="text-align:center; padding: 80px 20px;">

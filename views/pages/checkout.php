@@ -19,6 +19,21 @@ foreach ($cartItems as $item) {
     $subtotal += ($price * $qty);
 }
 
+// Check logged in customer
+$customer = customer_user();
+$defaultAddress = customer_primary_address();
+
+// Active coupon
+$activeCoupon = $_SESSION['coupon'] ?? null;
+$discountAmount = 0.0;
+if ($activeCoupon) {
+    if ($activeCoupon['discount_type'] === 'percentage') {
+        $discountAmount = round($subtotal * (((float)$activeCoupon['discount_value']) / 100), 2);
+    } else if ($activeCoupon['discount_type'] === 'fixed_amount') {
+        $discountAmount = min((float)$activeCoupon['discount_value'], $subtotal);
+    }
+}
+
 // Sri Lanka Districts
 $districts = [
     'Western Province' => ['Colombo', 'Gampaha', 'Kalutara'],
@@ -61,23 +76,28 @@ $districts = [
                             <div class="checkout-block__header">
                                 <span class="checkout-block__num">01 //</span>
                                 <h3 class="checkout-block__title">CUSTOMER INFORMATION</h3>
+                                <?php if ($customer): ?>
+                                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--brand-deep);background:rgba(78,42,132,0.08);padding:3px 8px;">
+                                        LOGGED IN AS <?= e(strtoupper($customer['full_name'] ?: $customer['phone'])) ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
                             <div class="form-grid">
                                 <div class="form-group form-group--full">
                                     <label class="form-label" for="full_name">FULL NAME <span class="req">*</span></label>
-                                    <input type="text" id="full_name" name="full_name" class="input" placeholder="e.g. Kasun Perera" required>
+                                    <input type="text" id="full_name" name="full_name" class="input" value="<?= e($customer['full_name'] ?? '') ?>" placeholder="e.g. Kasun Perera" required>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="phone">PRIMARY PHONE (FOR DELIVERY & OTP) <span class="req">*</span></label>
-                                    <input type="tel" id="phone" name="phone" class="input" placeholder="077XXXXXXX or +9477XXXXXXX" required>
+                                    <input type="tel" id="phone" name="phone" class="input" value="<?= e($customer['phone'] ?? '') ?>" placeholder="077XXXXXXX or +9477XXXXXXX" required>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="secondary_phone">SECONDARY PHONE (OPTIONAL)</label>
-                                    <input type="tel" id="secondary_phone" name="secondary_phone" class="input" placeholder="071XXXXXXX">
+                                    <input type="tel" id="secondary_phone" name="secondary_phone" class="input" value="<?= e($customer['secondary_phone'] ?? '') ?>" placeholder="071XXXXXXX">
                                 </div>
                                 <div class="form-group form-group--full">
                                     <label class="form-label" for="email">EMAIL ADDRESS (FOR INVOICE COPY)</label>
-                                    <input type="email" id="email" name="email" class="input" placeholder="kasun@example.com">
+                                    <input type="email" id="email" name="email" class="input" value="<?= e($customer['email'] ?? '') ?>" placeholder="kasun@example.com">
                                 </div>
                             </div>
                         </div>
@@ -91,24 +111,27 @@ $districts = [
                             <div class="form-grid">
                                 <div class="form-group form-group--full">
                                     <label class="form-label" for="address_line1">STREET ADDRESS / HOUSE NUMBER <span class="req">*</span></label>
-                                    <input type="text" id="address_line1" name="address_line1" class="input" placeholder="No. 124, Galle Road" required>
+                                    <input type="text" id="address_line1" name="address_line1" class="input" value="<?= e($defaultAddress['address_line1'] ?? '') ?>" placeholder="No. 124, Galle Road" required>
                                 </div>
                                 <div class="form-group form-group--full">
                                     <label class="form-label" for="address_line2">APARTMENT / SUITE / LANDMARK (OPTIONAL)</label>
-                                    <input type="text" id="address_line2" name="address_line2" class="input" placeholder="Near Clock Tower">
+                                    <input type="text" id="address_line2" name="address_line2" class="input" value="<?= e($defaultAddress['address_line2'] ?? '') ?>" placeholder="Near Clock Tower">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="city">CITY / TOWN <span class="req">*</span></label>
-                                    <input type="text" id="city" name="city" class="input" placeholder="e.g. Colombo 03, Kandy, Negombo" required>
+                                    <input type="text" id="city" name="city" class="input" value="<?= e($defaultAddress['city'] ?? '') ?>" placeholder="e.g. Colombo 03, Kandy, Negombo" required>
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="district">DISTRICT <span class="req">*</span></label>
                                     <select id="district" name="district" class="input select-input" required>
                                         <option value="">-- SELECT YOUR DISTRICT --</option>
-                                        <?php foreach ($districts as $province => $provDistricts): ?>
+                                        <?php 
+                                            $selectedDist = $defaultAddress['district'] ?? 'Colombo';
+                                            foreach ($districts as $province => $provDistricts): 
+                                        ?>
                                             <optgroup label="<?= e($province) ?>">
                                                 <?php foreach ($provDistricts as $d): ?>
-                                                    <option value="<?= e($d) ?>" <?= $d === 'Colombo' ? 'selected' : '' ?>><?= e($d) ?></option>
+                                                    <option value="<?= e($d) ?>" <?= $d === $selectedDist ? 'selected' : '' ?>><?= e($d) ?></option>
                                                 <?php endforeach; ?>
                                             </optgroup>
                                         <?php endforeach; ?>
@@ -176,12 +199,38 @@ $districts = [
                             <?php endforeach; ?>
                         </div>
 
+                        <!-- Promo Code Section -->
+                        <div class="checkout-promo-box" style="margin: 20px 0; padding: 16px 0; border-top: 1px solid var(--border-crisp); border-bottom: 1px solid var(--border-crisp);">
+                            <label class="form-label" style="font-size: 11px; margin-bottom: 8px; display: block; letter-spacing: 0.08em;">
+                                HAVE A PROMO CODE?
+                            </label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="promo-code-input" value="<?= e($activeCoupon['code'] ?? '') ?>" placeholder="e.g. AMETHYST10" 
+                                       style="text-transform: uppercase; font-family: var(--font-mono); letter-spacing: 0.1em; flex: 1; padding: 9px 12px; border: 1px solid var(--border-crisp); font-size: 13px; border-radius: 0; outline: none;"
+                                       <?= $activeCoupon ? 'readonly' : '' ?>>
+                                <?php if ($activeCoupon): ?>
+                                    <button type="button" id="remove-promo-btn" class="btn btn--outline btn--sm" style="padding: 0 14px; font-weight: 700; border-radius: 0; color: #EF4444; border-color: #FECACA;">REMOVE</button>
+                                <?php else: ?>
+                                    <button type="button" id="apply-promo-btn" class="btn btn--outline btn--sm" style="padding: 0 16px; font-weight: 700; border-radius: 0;">APPLY</button>
+                                <?php endif; ?>
+                            </div>
+                            <div id="promo-feedback" style="font-size: 12px; margin-top: 8px; <?= $activeCoupon ? 'display:block;color:#065F46;' : 'display:none;' ?>">
+                                <?= $activeCoupon ? "Promo code '{$activeCoupon['code']}' applied!" : '' ?>
+                            </div>
+                        </div>
+
                         <!-- Financial Totals Table -->
                         <div class="checkout-totals">
                             <div class="checkout-totals__row">
                                 <span>SUBTOTAL:</span>
                                 <strong id="summary-subtotal" data-raw-subtotal="<?= $subtotal ?>">
                                     <?= format_price($subtotal) ?>
+                                </strong>
+                            </div>
+                            <div class="checkout-totals__row" id="row-discount" style="<?= $activeCoupon ? '' : 'display: none;' ?>">
+                                <span style="color: var(--brand-deep);">PROMO DISCOUNT (<span id="discount-code-display"><?= e($activeCoupon['code'] ?? '') ?></span>):</span>
+                                <strong id="summary-discount" data-discount-amount="<?= $discountAmount ?>" style="color: var(--brand-deep);">
+                                    - <?= format_price($discountAmount) ?>
                                 </strong>
                             </div>
                             <div class="checkout-totals__row">
@@ -194,7 +243,7 @@ $districts = [
                             <div class="checkout-totals__row checkout-totals__row--grand">
                                 <span>TOTAL TO PAY:</span>
                                 <strong id="summary-grand-total">
-                                    <?= format_price($subtotal + 350.00) ?>
+                                    <?= format_price(max(0, $subtotal - $discountAmount + 350.00)) ?>
                                 </strong>
                             </div>
                         </div>

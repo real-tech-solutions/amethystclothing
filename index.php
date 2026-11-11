@@ -55,6 +55,11 @@ $router->get('track-order',        __DIR__ . '/views/pages/track-order.php');
 $router->get('checkout',           __DIR__ . '/views/pages/checkout.php');
 $router->get('checkout-success',   __DIR__ . '/views/pages/checkout-success.php');
 $router->get('invoice',            __DIR__ . '/views/pages/invoice.php');
+$router->get('wishlist',           __DIR__ . '/views/pages/wishlist.php');
+$router->get('auth',               __DIR__ . '/views/pages/auth.php');
+$router->get('account',            __DIR__ . '/views/pages/account/dashboard.php');
+$router->get('account/dashboard',  __DIR__ . '/views/pages/account/dashboard.php');
+$router->get('account/logout',     __DIR__ . '/views/pages/account/logout.php');
 
 // ── Admin Panel Routes ──
 $router->get('admin',              __DIR__ . '/views/pages/admin/dashboard.php');
@@ -62,6 +67,7 @@ $router->get('admin/login',        __DIR__ . '/views/pages/admin/login.php');
 $router->get('admin/dashboard',    __DIR__ . '/views/pages/admin/dashboard.php');
 $router->get('admin/orders',       __DIR__ . '/views/pages/admin/orders.php');
 $router->get('admin/products',     __DIR__ . '/views/pages/admin/products.php');
+$router->get('admin/reviews',      __DIR__ . '/views/pages/admin/reviews.php');
 $router->get('admin/logout',       __DIR__ . '/views/pages/admin/logout.php');
 
 // Resolve current request

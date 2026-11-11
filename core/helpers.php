@@ -199,3 +199,61 @@ function require_admin_auth(): void
     }
 }
 
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER AUTHENTICATION & PROFILE HELPERS                         */
+/* ------------------------------------------------------------------ */
+
+function customer_user(): ?array
+{
+    static $customer = false;
+    if ($customer !== false) return $customer;
+
+    if (empty($_SESSION['customer_id'])) {
+        $customer = null;
+        return null;
+    }
+
+    try {
+        $stmt = db()->prepare("SELECT * FROM customers WHERE id = ? LIMIT 1");
+        $stmt->execute([(int) $_SESSION['customer_id']]);
+        $res = $stmt->fetch();
+        $customer = $res ?: null;
+    } catch (Exception $e) {
+        $customer = null;
+    }
+    return $customer;
+}
+
+function is_customer_logged_in(): bool
+{
+    return customer_user() !== null;
+}
+
+function customer_primary_address(?int $customerId = null): ?array
+{
+    $cId = $customerId ?? ($_SESSION['customer_id'] ?? null);
+    if (!$cId) return null;
+
+    try {
+        $stmt = db()->prepare("
+            SELECT * FROM customer_addresses 
+            WHERE customer_id = ? 
+            ORDER BY is_default DESC, id DESC 
+            LIMIT 1
+        ");
+        $stmt->execute([(int)$cId]);
+        return $stmt->fetch() ?: null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function require_customer_auth(): void
+{
+    if (!is_customer_logged_in()) {
+        $redirect = current_path();
+        redirect(base_url('auth' . ($redirect ? '?redirect=' . urlencode($redirect) : '')));
+    }
+}
+
+

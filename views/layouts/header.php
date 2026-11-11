@@ -118,20 +118,31 @@ $currencies = get_currencies();
             </div>
 
             <!-- Wishlist Trigger -->
-            <a href="<?= base_url('shop') ?>" class="action-btn" aria-label="Wishlist">
+            <a href="<?= base_url('wishlist') ?>" class="action-btn" aria-label="Wishlist" title="View Wishlist">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                 </svg>
-                <span class="action-btn__badge">0</span>
+                <span class="action-btn__badge" id="wishlist-badge"><?= count($_SESSION['wishlist'] ?? []) ?></span>
             </a>
 
-            <!-- Customer Account / Track Order Modal Trigger -->
-            <button type="button" class="action-btn" data-modal-target="track-modal" aria-label="Account">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-            </button>
+            <!-- Customer Account Trigger -->
+            <?php if (is_customer_logged_in()): ?>
+                <?php $loggedInCustomer = customer_user(); ?>
+                <a href="<?= base_url('account/dashboard') ?>" class="action-btn" aria-label="My Account" title="My Account (<?= e($loggedInCustomer['full_name'] ?: $loggedInCustomer['phone']) ?>)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span style="position:absolute;top:6px;right:6px;width:7px;height:7px;background:var(--brand-deep);border-radius:50%;"></span>
+                </a>
+            <?php else: ?>
+                <a href="<?= base_url('auth') ?>" class="action-btn" aria-label="Sign In / Register" title="Sign In / Register">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </a>
+            <?php endif; ?>
 
             <!-- Cart Trigger Button -->
             <button type="button" class="cart-trigger" id="cart-trigger" aria-label="View shopping bag">

@@ -67,31 +67,64 @@ if ($subtotal >= $freeShippingThreshold) {
     $shippingFee = 0.00;
 }
 
-$grandTotal = $subtotal + $shippingFee;
+// Discount & Coupon calculations
+$discountAmount = 0.0;
+$couponCodeUsed = null;
+$couponId = null;
+
+if (!empty($_SESSION['coupon'])) {
+    $c = $_SESSION['coupon'];
+    $couponCodeUsed = $c['code'] ?? null;
+    $couponId = $c['id'] ?? null;
+
+    if ($c['discount_type'] === 'percentage') {
+        $discountAmount = round($subtotal * (((float)$c['discount_value']) / 100), 2);
+    } else if ($c['discount_type'] === 'fixed_amount') {
+        $discountAmount = min((float)$c['discount_value'], $subtotal);
+    } else if ($c['discount_type'] === 'free_shipping') {
+        $shippingFee = 0.00;
+    }
+}
+
+$grandTotal = max(0, $subtotal - $discountAmount + $shippingFee);
 
 try {
     $pdo->beginTransaction();
 
-    // 1. Customer: Lookup by phone or create new guest customer
-    $custStmt = $pdo->prepare("SELECT id FROM customers WHERE phone = ? LIMIT 1");
-    $custStmt->execute([$cleanPhone]);
-    $existingCustomer = $custStmt->fetch();
+    // 1. Customer: Check if logged in customer or lookup by phone / create guest
+    $loggedInCustId = !empty($_SESSION['customer_id']) ? (int)$_SESSION['customer_id'] : 0;
 
-    if ($existingCustomer) {
-        $customerId = (int)$existingCustomer['id'];
+    if ($loggedInCustId > 0) {
+        $customerId = $loggedInCustId;
         $upCust = $pdo->prepare("
             UPDATE customers 
-            SET full_name = ?, total_orders_count = total_orders_count + 1, total_spent_amount = total_spent_amount + ?, last_order_date = NOW() 
+            SET total_orders_count = total_orders_count + 1, 
+                total_spent_amount = total_spent_amount + ?, 
+                last_order_date = NOW() 
             WHERE id = ?
         ");
-        $upCust->execute([$fullName, $grandTotal, $customerId]);
+        $upCust->execute([$grandTotal, $customerId]);
     } else {
-        $insCust = $pdo->prepare("
-            INSERT INTO customers (phone, secondary_phone, full_name, email, account_type, total_orders_count, total_spent_amount, last_order_date) 
-            VALUES (?, ?, ?, ?, 'guest', 1, ?, NOW())
-        ");
-        $insCust->execute([$cleanPhone, $secondaryPhone ?: null, $fullName, $email ?: null, $grandTotal]);
-        $customerId = (int)$pdo->lastInsertId();
+        $custStmt = $pdo->prepare("SELECT id FROM customers WHERE phone = ? LIMIT 1");
+        $custStmt->execute([$cleanPhone]);
+        $existingCustomer = $custStmt->fetch();
+
+        if ($existingCustomer) {
+            $customerId = (int)$existingCustomer['id'];
+            $upCust = $pdo->prepare("
+                UPDATE customers 
+                SET full_name = ?, total_orders_count = total_orders_count + 1, total_spent_amount = total_spent_amount + ?, last_order_date = NOW() 
+                WHERE id = ?
+            ");
+            $upCust->execute([$fullName, $grandTotal, $customerId]);
+        } else {
+            $insCust = $pdo->prepare("
+                INSERT INTO customers (phone, secondary_phone, full_name, email, account_type, total_orders_count, total_spent_amount, last_order_date) 
+                VALUES (?, ?, ?, ?, 'guest', 1, ?, NOW())
+            ");
+            $insCust->execute([$cleanPhone, $secondaryPhone ?: null, $fullName, $email ?: null, $grandTotal]);
+            $customerId = (int)$pdo->lastInsertId();
+        }
     }
 
     // 2. Generate Unique Order Number (e.g. AME-2026-000101)
@@ -111,23 +144,31 @@ try {
             order_number, customer_id, customer_phone, recipient_name,
             shipping_address_line1, shipping_address_line2, shipping_city, shipping_district,
             delivery_notes, currency_code, exchange_rate_used,
-            subtotal_amount, shipping_fee, grand_total, payment_method, payment_status, order_status
+            subtotal_amount, discount_amount, coupon_code_used, shipping_fee, grand_total, 
+            payment_method, payment_status, order_status
         ) VALUES (
             ?, ?, ?, ?,
             ?, ?, ?, ?,
             ?, 'LKR', 1.000000,
-            ?, ?, ?, 'cod', 'pending', 'placed'
+            ?, ?, ?, ?, ?, 
+            'cod', 'pending', 'placed'
         )
     ");
     $orderStmt->execute([
         $orderNumber, $customerId, $cleanPhone, $fullName,
         $addressLine1, $addressLine2 ?: null, $city, $district,
         $deliveryNotes ?: null,
-        $subtotal, $shippingFee, $grandTotal
+        $subtotal, $discountAmount, $couponCodeUsed, $shippingFee, $grandTotal
     ]);
     $orderId = (int)$pdo->lastInsertId();
 
-    // 4. Insert Order Items & Deduct Stock from product_variants
+    // 4. Update coupon usage if used
+    if ($couponId) {
+        $updCoupon = $pdo->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?");
+        $updCoupon->execute([$couponId]);
+    }
+
+    // 5. Insert Order Items & Deduct Stock from product_variants
     $itemStmt = $pdo->prepare("
         INSERT INTO order_items (
             order_id, product_id, variant_id, product_name_snapshot,
@@ -162,22 +203,23 @@ try {
         $stockDeductStmt->execute([$qty, $variantId]);
     }
 
-    // 5. Insert Timeline Record into order_status_history
+    // 6. Insert Timeline Record into order_status_history
     $historyStmt = $pdo->prepare("
         INSERT INTO order_status_history (order_id, status, public_comment) 
         VALUES (?, 'placed', 'Order placed successfully via 60-Second Guest Checkout. Awaiting order verification.')
     ");
     $historyStmt->execute([$orderId]);
 
-    // 6. Generate Invoice Record
+    // 7. Generate Invoice Record
     $invoiceNumber = 'INV-' . date('Y') . '-' . substr($orderNumber, 9);
     $invStmt = $pdo->prepare("INSERT INTO invoices (order_id, invoice_number) VALUES (?, ?)");
     $invStmt->execute([$orderId, $invoiceNumber]);
 
     $pdo->commit();
 
-    // 7. Clear Session Cart
+    // 8. Clear Session Cart and Coupon
     $_SESSION['cart'] = [];
+    unset($_SESSION['coupon']);
 
     echo json_encode([
         'success'      => true,

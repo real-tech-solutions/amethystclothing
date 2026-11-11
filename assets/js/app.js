@@ -441,8 +441,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (districtSelect && summarySubtotalElem) {
         const rawSubtotal = parseFloat(summarySubtotalElem.getAttribute('data-raw-subtotal')) || 0;
         const colomboSuburbs = ['Colombo', 'Gampaha', 'Kalutara'];
+        const summaryDiscountElem = document.getElementById('summary-discount');
+        const rowDiscount = document.getElementById('row-discount');
+        const promoCodeInput = document.getElementById('promo-code-input');
+        const applyPromoBtn = document.getElementById('apply-promo-btn');
+        const removePromoBtn = document.getElementById('remove-promo-btn');
+        const promoFeedback = document.getElementById('promo-feedback');
+        const discountCodeDisplay = document.getElementById('discount-code-display');
 
-        const updateShippingRate = () => {
+        let currentDiscount = summaryDiscountElem ? (parseFloat(summaryDiscountElem.getAttribute('data-discount-amount')) || 0) : 0;
+
+        const updateTotals = () => {
             const district = districtSelect.value;
             let fee = 450.00;
             let note = '(Outstation Delivery)';
@@ -457,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 note = '(Free Islandwide Delivery)';
             }
 
-            const grand = rawSubtotal + fee;
+            const grand = Math.max(0, rawSubtotal - currentDiscount + fee);
 
             if (shippingRateNote) shippingRateNote.innerText = note;
             if (summaryShipping) {
@@ -468,8 +477,100 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        districtSelect.addEventListener('change', updateShippingRate);
-        updateShippingRate();
+        districtSelect.addEventListener('change', updateTotals);
+        updateTotals();
+
+        // Apply Promo Code
+        if (applyPromoBtn && promoCodeInput) {
+            applyPromoBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const code = promoCodeInput.value.trim();
+                if (!code) {
+                    if (promoFeedback) {
+                        promoFeedback.innerText = 'Please enter a promo code.';
+                        promoFeedback.style.color = '#EF4444';
+                        promoFeedback.style.display = 'block';
+                    }
+                    return;
+                }
+
+                applyPromoBtn.setAttribute('disabled', 'disabled');
+                applyPromoBtn.innerText = '...';
+
+                const formData = new FormData();
+                formData.append('coupon_code', code);
+                formData.append('action', 'apply');
+
+                fetch(baseUrl + '/ajax/apply_coupon.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    applyPromoBtn.removeAttribute('disabled');
+                    applyPromoBtn.innerText = 'APPLY';
+
+                    if (data.success) {
+                        currentDiscount = parseFloat(data.discount_amount) || 0;
+                        if (summaryDiscountElem) {
+                            summaryDiscountElem.innerText = '- ' + data.discount_formatted;
+                            summaryDiscountElem.setAttribute('data-discount-amount', currentDiscount);
+                        }
+                        if (discountCodeDisplay) {
+                            discountCodeDisplay.innerText = data.code;
+                        }
+                        if (rowDiscount) rowDiscount.style.display = '';
+                        if (promoFeedback) {
+                            promoFeedback.innerText = data.message;
+                            promoFeedback.style.color = '#065F46';
+                            promoFeedback.style.display = 'block';
+                        }
+                        updateTotals();
+                        // Reload page after brief delay so server-side session syncs buttons cleanly
+                        setTimeout(() => window.location.reload(), 800);
+                    } else {
+                        if (promoFeedback) {
+                            promoFeedback.innerText = data.message || 'Invalid promo code.';
+                            promoFeedback.style.color = '#EF4444';
+                            promoFeedback.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(err => {
+                    applyPromoBtn.removeAttribute('disabled');
+                    applyPromoBtn.innerText = 'APPLY';
+                    if (promoFeedback) {
+                        promoFeedback.innerText = 'Network error applying promo code.';
+                        promoFeedback.style.color = '#EF4444';
+                        promoFeedback.style.display = 'block';
+                    }
+                });
+            });
+        }
+
+        // Remove Promo Code
+        if (removePromoBtn) {
+            removePromoBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                removePromoBtn.setAttribute('disabled', 'disabled');
+                removePromoBtn.innerText = '...';
+
+                const formData = new FormData();
+                formData.append('action', 'remove');
+
+                fetch(baseUrl + '/ajax/apply_coupon.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    window.location.reload();
+                })
+                .catch(err => {
+                    window.location.reload();
+                });
+            });
+        }
     }
 
     // Submit Checkout Form via AJAX
