@@ -134,6 +134,7 @@ $primaryImage = !empty($mediaItems[0]['url'])
                                 <?php foreach ($variants as $idx => $v): ?>
                                     <button type="button" 
                                             class="size-btn <?= $idx === 0 ? 'is-selected' : '' ?>" 
+                                            data-variant-id="<?= (int)$v['id'] ?>"
                                             data-sku="<?= e($v['sku']) ?>"
                                             data-size="<?= e($v['size_code']) ?>"
                                             data-stock="<?= (int)$v['total_stock_quantity'] ?>"

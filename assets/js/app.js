@@ -1,9 +1,12 @@
 /**
  * AMETHYSTCLOTHING.LK — FRONTEND APP JAVASCRIPT
- * Phase 2: Hero Slider, Scroll-Snap Carousel, Dynamic Variant SKU & Live Stock Logic
+ * Phase 3: Slide-Over Cart Engine, Dynamic Variant Selection, Single-Page Checkout & Order Tracking
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    const config = window.AMETHYST_CONFIG || { baseUrl: '', currency: 'LKR' };
+    const baseUrl = config.baseUrl || '';
+
     // =========================================================================
     // 1. HERO IMAGE SLIDER (AUTOPLAYING CROSSFADE)
     // =========================================================================
@@ -58,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
         heroSlider.addEventListener('mouseenter', stopAutoPlay);
         heroSlider.addEventListener('mouseleave', startAutoPlay);
 
-        // Start autoplay on load
         startAutoPlay();
     }
 
@@ -86,7 +88,184 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 3. DYNAMIC PRODUCT VARIANTS & LIVE STOCK STATUS (CRITICAL)
+    // 3. SLIDE-OVER CART ENGINE (VANILLA JS & AJAX)
+    // =========================================================================
+    const cartTrigger = document.getElementById('cart-trigger');
+    const cartDrawer = document.getElementById('cart-drawer');
+    const cartOverlay = cartDrawer ? cartDrawer.querySelector('.cart-drawer__overlay') : null;
+    const cartDrawerBody = document.getElementById('cart-drawer-body');
+    const cartDrawerItems = document.getElementById('cart-drawer-items');
+    const cartDrawerEmpty = document.getElementById('cart-drawer-empty');
+    const cartDrawerFoot = document.getElementById('cart-drawer-foot');
+    const cartHeaderCount = document.getElementById('cart-item-count');
+    const cartHeaderSubtotal = document.getElementById('cart-subtotal');
+    const cartDrawerCount = document.getElementById('cart-drawer-count');
+    const cartDrawerSubtotal = document.getElementById('cart-drawer-subtotal');
+
+    const openCart = () => {
+        if (!cartDrawer) return;
+        cartDrawer.classList.add('is-open');
+        cartDrawer.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    };
+
+    const closeCart = () => {
+        if (!cartDrawer) return;
+        cartDrawer.classList.remove('is-open');
+        cartDrawer.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    };
+
+    if (cartTrigger) cartTrigger.addEventListener('click', openCart);
+    if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
+
+    document.querySelectorAll('.cart-drawer__close').forEach(btn => {
+        btn.addEventListener('click', closeCart);
+    });
+
+    // Render Cart Drawer HTML from Cart Response Data
+    const renderCartDrawer = (cartData) => {
+        if (!cartData) return;
+
+        const count = cartData.itemCount || 0;
+        const formattedSubtotal = cartData.formattedSubtotal || 'Rs. 0.00';
+        const items = cartData.items || [];
+
+        // Update header triggers
+        if (cartHeaderCount) cartHeaderCount.innerText = count;
+        if (cartHeaderSubtotal) cartHeaderSubtotal.innerText = formattedSubtotal;
+        if (cartDrawerCount) cartDrawerCount.innerText = count;
+        if (cartDrawerSubtotal) cartDrawerSubtotal.innerText = formattedSubtotal;
+
+        if (!cartDrawerItems) return;
+
+        if (items.length === 0) {
+            cartDrawerItems.innerHTML = '';
+            if (cartDrawerEmpty) cartDrawerEmpty.style.display = 'block';
+            if (cartDrawerFoot) cartDrawerFoot.style.display = 'none';
+        } else {
+            if (cartDrawerEmpty) cartDrawerEmpty.style.display = 'none';
+            if (cartDrawerFoot) cartDrawerFoot.style.display = 'block';
+
+            let itemsHtml = '';
+            items.forEach(item => {
+                itemsHtml += `
+                    <div class="cart-item" data-variant-id="${item.variant_id}">
+                        <img src="${item.image}" alt="${item.name}" class="cart-item__thumb">
+                        <div class="cart-item__details">
+                            <div>
+                                <h4 class="cart-item__title">${item.name}</h4>
+                                <div class="cart-item__meta">
+                                    <span>SIZE: <strong>${item.size}</strong></span>
+                                    <span>SKU: ${item.sku}</span>
+                                </div>
+                            </div>
+                            <div class="cart-item__bottom">
+                                <div class="cart-item__qty-control">
+                                    <button type="button" class="cart-qty-btn cart-qty-btn--minus" data-variant-id="${item.variant_id}" data-current-qty="${item.quantity}">&minus;</button>
+                                    <span class="cart-qty-val">${item.quantity}</span>
+                                    <button type="button" class="cart-qty-btn cart-qty-btn--plus" data-variant-id="${item.variant_id}" data-current-qty="${item.quantity}" data-max-stock="${item.stock}">&#43;</button>
+                                </div>
+                                <span class="cart-item__price">${item.formatted_line_total}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="cart-item__remove" data-variant-id="${item.variant_id}" title="Remove item">&times;</button>
+                    </div>
+                `;
+            });
+            cartDrawerItems.innerHTML = itemsHtml;
+
+            // Wire up quantity controls and remove buttons
+            cartDrawerItems.querySelectorAll('.cart-qty-btn--minus').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const vId = btn.getAttribute('data-variant-id');
+                    const curQty = parseInt(btn.getAttribute('data-current-qty'), 10);
+                    updateCartItem(vId, curQty - 1);
+                });
+            });
+
+            cartDrawerItems.querySelectorAll('.cart-qty-btn--plus').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const vId = btn.getAttribute('data-variant-id');
+                    const curQty = parseInt(btn.getAttribute('data-current-qty'), 10);
+                    const maxStock = parseInt(btn.getAttribute('data-max-stock'), 10);
+                    if (curQty < maxStock) {
+                        updateCartItem(vId, curQty + 1);
+                    }
+                });
+            });
+
+            cartDrawerItems.querySelectorAll('.cart-item__remove').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const vId = btn.getAttribute('data-variant-id');
+                    removeCartItem(vId);
+                });
+            });
+        }
+    };
+
+    // API: Fetch current cart on page load
+    const fetchCartState = () => {
+        fetch(baseUrl + '/ajax/cart.php?action=get')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) renderCartDrawer(data);
+            })
+            .catch(err => console.error('Cart fetch error:', err));
+    };
+
+    // API: Add to cart
+    const addToCart = (variantId, quantity = 1, onSuccess = null) => {
+        fetch(baseUrl + '/ajax/cart.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add', variant_id: variantId, quantity: quantity })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                renderCartDrawer(data);
+                if (typeof onSuccess === 'function') onSuccess(data);
+            } else {
+                alert(data.message || 'Could not add item to bag.');
+            }
+        })
+        .catch(err => console.error('Add to cart error:', err));
+    };
+
+    // API: Update quantity
+    const updateCartItem = (variantId, quantity) => {
+        fetch(baseUrl + '/ajax/cart.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update', variant_id: variantId, quantity: quantity })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) renderCartDrawer(data);
+        })
+        .catch(err => console.error('Update cart error:', err));
+    };
+
+    // API: Remove item
+    const removeCartItem = (variantId) => {
+        fetch(baseUrl + '/ajax/cart.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'remove', variant_id: variantId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) renderCartDrawer(data);
+        })
+        .catch(err => console.error('Remove cart item error:', err));
+    };
+
+    // Fetch initial cart state
+    fetchCartState();
+
+    // =========================================================================
+    // 4. DYNAMIC VARIANT SELECTION & LIVE STOCK STATUS (PRODUCT DETAIL)
     // =========================================================================
     const sizeButtons = document.querySelectorAll('.size-btn');
     const skuText = document.getElementById('current-sku-text');
@@ -99,16 +278,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const addToBagBtn = document.getElementById('add-to-bag-btn');
     const buyNowBtn = document.getElementById('buy-now-btn');
 
+    let activeVariantId = null;
+    let activeVariantStock = 0;
+
     const updateVariantState = (button) => {
         if (!button) return;
 
-        // Deselect others, select current
         sizeButtons.forEach(btn => btn.classList.remove('is-selected'));
         button.classList.add('is-selected');
 
+        activeVariantId = parseInt(button.getAttribute('data-variant-id'), 10);
         const sku = button.getAttribute('data-sku') || '';
         const size = button.getAttribute('data-size') || '';
         const stock = parseInt(button.getAttribute('data-stock'), 10) || 0;
+        activeVariantStock = stock;
 
         // 1. Update SKU Display & Barcode
         if (skuText) skuText.innerText = 'SKU: ' + sku;
@@ -118,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 2. Update Live Stock Status Badge & Order Buttons
         if (stockBadge) {
-            stockBadge.className = 'stock-badge'; // Reset classes
+            stockBadge.className = 'stock-badge';
 
             if (stock > 5) {
                 // In Stock (> 5)
@@ -187,6 +370,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (initialBtn) updateVariantState(initialBtn);
     }
 
+    // Add to Bag Button Click Handler
+    if (addToBagBtn) {
+        addToBagBtn.addEventListener('click', () => {
+            if (activeVariantStock <= 0 || !activeVariantId) return;
+
+            const originalText = addToBagBtn.innerText;
+            addToBagBtn.innerText = 'ADDING...';
+
+            addToCart(activeVariantId, 1, () => {
+                addToBagBtn.innerText = 'ADDED TO BAG';
+                addToBagBtn.style.backgroundColor = 'var(--status-success)';
+                addToBagBtn.style.borderColor = 'var(--status-success)';
+
+                setTimeout(() => {
+                    openCart();
+                    addToBagBtn.innerText = originalText;
+                    addToBagBtn.style.backgroundColor = '';
+                    addToBagBtn.style.borderColor = '';
+                }, 400);
+            });
+        });
+    }
+
+    // Buy Now Button Click Handler (1-Click Guest Checkout)
+    if (buyNowBtn) {
+        buyNowBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (activeVariantStock <= 0 || !activeVariantId) return;
+
+            addToCart(activeVariantId, 1, () => {
+                window.location.href = baseUrl + '/checkout';
+            });
+        });
+    }
+
     // Product Gallery Thumbnail Click Switcher
     const thumbButtons = document.querySelectorAll('.thumb-btn');
     const mainProductImage = document.getElementById('main-product-image');
@@ -209,7 +427,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =========================================================================
-    // 4. MOBILE NAVIGATION DRAWER
+    // 5. SINGLE-PAGE GUEST CHECKOUT LOGIC
+    // =========================================================================
+    const checkoutForm = document.getElementById('checkout-form');
+    const districtSelect = document.getElementById('district');
+    const summaryShipping = document.getElementById('summary-shipping');
+    const summaryGrandTotal = document.getElementById('summary-grand-total');
+    const summarySubtotalElem = document.getElementById('summary-subtotal');
+    const shippingRateNote = document.getElementById('shipping-rate-note');
+    const placeOrderBtn = document.getElementById('place-order-btn');
+    const checkoutAlert = document.getElementById('checkout-alert');
+
+    if (districtSelect && summarySubtotalElem) {
+        const rawSubtotal = parseFloat(summarySubtotalElem.getAttribute('data-raw-subtotal')) || 0;
+        const colomboSuburbs = ['Colombo', 'Gampaha', 'Kalutara'];
+
+        const updateShippingRate = () => {
+            const district = districtSelect.value;
+            let fee = 450.00;
+            let note = '(Outstation Delivery)';
+
+            if (colomboSuburbs.includes(district)) {
+                fee = 350.00;
+                note = '(Colombo & Suburbs)';
+            }
+
+            if (rawSubtotal >= 7500.00) {
+                fee = 0.00;
+                note = '(Free Islandwide Delivery)';
+            }
+
+            const grand = rawSubtotal + fee;
+
+            if (shippingRateNote) shippingRateNote.innerText = note;
+            if (summaryShipping) {
+                summaryShipping.innerText = fee === 0 ? 'FREE' : 'Rs. ' + fee.toFixed(2);
+            }
+            if (summaryGrandTotal) {
+                summaryGrandTotal.innerText = 'Rs. ' + grand.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+        };
+
+        districtSelect.addEventListener('change', updateShippingRate);
+        updateShippingRate();
+    }
+
+    // Submit Checkout Form via AJAX
+    if (placeOrderBtn && checkoutForm) {
+        placeOrderBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            // Client-side Validation
+            const fullName = document.getElementById('full_name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const address1 = document.getElementById('address_line1').value.trim();
+            const city = document.getElementById('city').value.trim();
+            const district = districtSelect ? districtSelect.value : '';
+
+            if (!fullName || !phone || !address1 || !city || !district) {
+                if (checkoutAlert) {
+                    checkoutAlert.className = 'checkout-alert checkout-alert--error';
+                    checkoutAlert.innerText = 'Please complete all required fields (Full Name, Phone, Address, City, District).';
+                    checkoutAlert.style.display = 'block';
+                }
+                return;
+            }
+
+            placeOrderBtn.setAttribute('disabled', 'disabled');
+            const originalBtnText = placeOrderBtn.innerText;
+            placeOrderBtn.innerText = 'PROCESSING ORDER...';
+
+            const formData = new FormData(checkoutForm);
+            const payload = {};
+            formData.forEach((value, key) => { payload[key] = value; });
+
+            fetch(baseUrl + '/ajax/checkout_process.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.redirect) {
+                    window.location.href = res.redirect;
+                } else {
+                    placeOrderBtn.removeAttribute('disabled');
+                    placeOrderBtn.innerText = originalBtnText;
+                    if (checkoutAlert) {
+                        checkoutAlert.className = 'checkout-alert checkout-alert--error';
+                        checkoutAlert.innerText = res.message || 'Failed to place order. Please check your information.';
+                        checkoutAlert.style.display = 'block';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Checkout error:', err);
+                placeOrderBtn.removeAttribute('disabled');
+                placeOrderBtn.innerText = originalBtnText;
+                if (checkoutAlert) {
+                    checkoutAlert.className = 'checkout-alert checkout-alert--error';
+                    checkoutAlert.innerText = 'A network error occurred. Please try again.';
+                    checkoutAlert.style.display = 'block';
+                }
+            });
+        });
+    }
+
+    // =========================================================================
+    // 6. MOBILE NAVIGATION DRAWER
     // =========================================================================
     const navToggle = document.getElementById('nav-toggle');
     const mobileNavDrawer = document.getElementById('mobile-nav-drawer');
@@ -237,32 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mobileNavOverlay) mobileNavOverlay.addEventListener('click', closeMobileNav);
 
     // =========================================================================
-    // 5. SLIDE-OVER CART DRAWER & MODAL TRIGGERS
+    // 7. MODALS & FLOATING ACTION HUB
     // =========================================================================
-    const cartTrigger = document.getElementById('cart-trigger');
-    const cartDrawer = document.getElementById('cart-drawer');
-    const cartClose = cartDrawer ? cartDrawer.querySelector('.cart-drawer__close') : null;
-    const cartOverlay = cartDrawer ? cartDrawer.querySelector('.cart-drawer__overlay') : null;
-
-    const openCart = () => {
-        if (!cartDrawer) return;
-        cartDrawer.classList.add('is-open');
-        cartDrawer.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-    };
-
-    const closeCart = () => {
-        if (!cartDrawer) return;
-        cartDrawer.classList.remove('is-open');
-        cartDrawer.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-    };
-
-    if (cartTrigger) cartTrigger.addEventListener('click', openCart);
-    if (cartClose) cartClose.addEventListener('click', closeCart);
-    if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
-
-    // Modals (e.g. Track Order Modal)
     const modalTriggers = document.querySelectorAll('[data-modal-target]');
     modalTriggers.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -291,9 +592,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (overlay) overlay.addEventListener('click', closeModal);
     });
 
-    // =========================================================================
-    // 6. SEARCH DRAWER & FLOATING ACTION HUB
-    // =========================================================================
     const searchToggleBtn = document.getElementById('search-toggle-btn');
     const searchDrawer = document.getElementById('search-drawer');
 
@@ -345,25 +643,4 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.style.overflow = '';
         }
     });
-
-    // Add to Bag Button Animation & Feedback
-    if (addToBagBtn) {
-        addToBagBtn.addEventListener('click', () => {
-            if (addToBagBtn.hasAttribute('disabled')) return;
-            const originalText = addToBagBtn.innerText;
-            addToBagBtn.innerText = 'ADDED TO BAG';
-            addToBagBtn.style.backgroundColor = 'var(--status-success)';
-            addToBagBtn.style.borderColor = 'var(--status-success)';
-            
-            const badge = document.getElementById('cart-item-count');
-            if (badge) badge.innerText = '1';
-
-            setTimeout(() => {
-                openCart();
-                addToBagBtn.innerText = originalText;
-                addToBagBtn.style.backgroundColor = '';
-                addToBagBtn.style.borderColor = '';
-            }, 600);
-        });
-    }
 });

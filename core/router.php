@@ -45,7 +45,14 @@ class Router
                 extract($params);
                 ob_start();
                 include $handlerFile;
-                $content   = ob_get_clean();
+                $content = ob_get_clean();
+
+                // Standalone pages (like printable invoice) bypass master layout
+                if (!empty($standalone) || strpos($handlerFile, 'invoice.php') !== false) {
+                    echo $content;
+                    return;
+                }
+
                 // $pageTitle and $pageDescription may have been set by the view
                 $pageTitle       = $pageTitle ?? null;
                 $pageDescription = $pageDescription ?? null;

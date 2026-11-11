@@ -37,14 +37,24 @@ $pageDescription = $pageDescription ?? env('APP_SLOGAN', 'Just own Your Style!')
         <div class="cart-drawer__overlay"></div>
         <div class="cart-drawer__panel">
             <div class="cart-drawer__head">
-                <span class="cart-drawer__title">YOUR BAG</span>
+                <span class="cart-drawer__title">YOUR BAG (<span id="cart-drawer-count">0</span>)</span>
                 <button class="cart-drawer__close" aria-label="Close cart">&times;</button>
             </div>
-            <div class="cart-drawer__body">
-                <p class="cart-drawer__empty">Your bag is empty.</p>
+            <div class="cart-drawer__body" id="cart-drawer-body">
+                <div id="cart-drawer-items" class="cart-drawer__items"></div>
+                <div id="cart-drawer-empty" class="cart-drawer__empty">
+                    <p>Your shopping bag is currently empty.</p>
+                    <a href="<?= base_url('shop') ?>" class="btn btn--outline btn--sm" style="margin-top: 16px;">EXPLORE STREETWEAR</a>
+                </div>
             </div>
-            <div class="cart-drawer__foot">
-                <a href="<?= base_url('shop') ?>" class="btn btn--primary btn--full">CONTINUE SHOPPING</a>
+            <div class="cart-drawer__foot" id="cart-drawer-foot" style="display: none;">
+                <div class="cart-drawer__subtotal-row">
+                    <span class="cart-drawer__subtotal-label">SUBTOTAL:</span>
+                    <strong class="cart-drawer__subtotal-value" id="cart-drawer-subtotal">Rs. 0.00</strong>
+                </div>
+                <p class="cart-drawer__shipping-note">Taxes & shipping calculated at checkout</p>
+                <a href="<?= base_url('checkout') ?>" class="btn btn--brand btn--full" id="cart-drawer-checkout-btn">PROCEED TO GUEST CHECKOUT</a>
+                <button type="button" class="btn btn--outline btn--full cart-drawer__close" style="margin-top: 8px;">CONTINUE SHOPPING</button>
             </div>
         </div>
     </div>
@@ -59,14 +69,21 @@ $pageDescription = $pageDescription ?? env('APP_SLOGAN', 'Just own Your Style!')
             </div>
             <div class="modal__body">
                 <form action="<?= base_url('track-order') ?>" method="GET" class="track-form">
-                    <label for="track-input" class="track-form__label">ORDER NUMBER</label>
-                    <input type="text" id="track-input" name="order" placeholder="AME-2026-XXXXXX" class="input" required>
-                    <button type="submit" class="btn btn--primary btn--full">TRACK</button>
+                    <label for="track-input" class="track-form__label">ORDER NUMBER OR PHONE</label>
+                    <input type="text" id="track-input" name="order" placeholder="e.g. AME-2026-000101 or 077XXXXXXX" class="input" required>
+                    <button type="submit" class="btn btn--primary btn--full">TRACK SHIPMENT</button>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- Global App Configuration -->
+    <script>
+        window.AMETHYST_CONFIG = {
+            baseUrl: <?= json_encode(base_url()) ?>,
+            currency: <?= json_encode(current_currency()) ?>
+        };
+    </script>
     <script src="<?= asset_url('js/app.js') ?>"></script>
 </body>
 </html>
