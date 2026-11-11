@@ -1,0 +1,28 @@
+# Environment & secrets
+.env
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads & temp
+uploads/tmp/*
+!uploads/tmp/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Composer (if used later)
+/vendor/
+composer.lock
+
+# Node (if used later)
+/node_modules/
+package-lock.json

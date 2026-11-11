@@ -1,0 +1,13 @@
+RewriteEngine On
+RewriteBase /amethystclothing/
+
+# --- Allow direct access to real files and directories ---
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# --- Allow direct access to assets ---
+RewriteRule ^assets/ - [L]
+
+# --- Route everything else through front controller ---
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
