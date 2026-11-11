@@ -11,21 +11,34 @@ if (!isset($_SESSION['currency'])) {
     $_SESSION['currency'] = 'LKR';
 }
 
+// Default language
+if (!isset($_SESSION['lang'])) {
+    $_SESSION['lang'] = 'en';
+}
+
 // Currency switch via GET param
 if (isset($_GET['currency']) && in_array($_GET['currency'], ['LKR', 'USD'])) {
     $_SESSION['currency'] = $_GET['currency'];
-    // Redirect back without the param to keep URL clean
-    $back = $_SERVER['HTTP_REFERER'] ?? base_url();
-    // Don't redirect yet — base_url() needs helpers loaded first
+}
+
+// Language switch via GET param
+if (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'si'])) {
+    $_SESSION['lang'] = $_GET['lang'];
 }
 
 // Load core
 require_once __DIR__ . '/core/helpers.php';
 
-// Handle currency redirect after helpers are loaded
-if (isset($_GET['currency']) && in_array($_GET['currency'], ['LKR', 'USD'])) {
-    $back = strtok($_SERVER['REQUEST_URI'], '?');
-    header('Location: ' . $back);
+// Handle param redirects to clean URL if needed
+if ((isset($_GET['currency']) && in_array($_GET['currency'], ['LKR', 'USD'])) || 
+    (isset($_GET['lang']) && in_array($_GET['lang'], ['en', 'si']))) {
+    // Preserve other query params if any, or redirect cleanly
+    $params = $_GET;
+    unset($params['route'], $params['currency'], $params['lang']);
+    $base = strtok($_SERVER['REQUEST_URI'], '?');
+    $query = http_build_query($params);
+    $target = $base . ($query ? '?' . $query : '');
+    header('Location: ' . $target);
     exit;
 }
 

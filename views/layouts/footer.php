@@ -1,82 +1,98 @@
 <?php
 /**
  * Footer & Floating Action Component — Amethystclothing.lk
- * High-Contrast Streetwear / Dark Obsidian Grid
+ * High-Contrast Minimalist Streetwear (Cleaned & De-cluttered)
  */
 
 $slogan = get_setting('slogan', 'Just own Your Style!');
 $whatsappNumber = get_setting('whatsapp_number', '+94770000000');
 $whatsappClean = preg_replace('/[^0-9]/', '', $whatsappNumber);
+$contactEmail = get_setting('contact_email', 'hello@amethystclothing.lk');
 ?>
 <footer class="site-footer">
-    <!-- Brand Tag Barcode Strip -->
-    <div class="footer-barcode-strip">
-        <div class="container footer-barcode-strip__inner">
-            <span class="barcode-tag">*AMETHYST-LK-2026*</span>
-            <span class="barcode-text">GENUINE STREETWEAR & LUXURY EDITIONS — CRAFTED IN SRI LANKA</span>
-            <span class="barcode-tag">*000105-LK-PROD*</span>
-        </div>
-    </div>
-
     <!-- Main Footer Grid -->
     <div class="container site-footer__main">
         <div class="footer-grid">
-            <!-- Brand Manifesto Column -->
+            <!-- Brand Column -->
             <div class="footer-col footer-col--brand">
                 <a href="<?= base_url() ?>" class="footer-logo">
-                    <img src="<?= asset_url('images/logo_w-color.png') ?>" alt="AMETHYST" width="200" height="46">
+                    <img src="<?= asset_url('images/logo_w-color.png') ?>" alt="AMETHYST" width="190" height="44">
                 </a>
                 <p class="footer-manifesto">
-                    Amethyst is an unapologetic streetwear & contemporary luxury label. Built with high-density combed cotton, razor-sharp silhouettes, and zero compromise. Just own your style.
+                    <?= e(__('footer_about')) ?>
                 </p>
-                <div class="footer-meta-pill">
-                    <span class="footer-meta-pill__dot"></span>
-                    <span>OFFICIAL ONLINE STORE • SRI LANKA</span>
+                <div class="footer-specialty-pill">
+                    <span class="footer-specialty-pill__dot"></span>
+                    <span>PREMIUM T-SHIRT PRINTING & CUSTOM APPAREL</span>
                 </div>
             </div>
 
-            <!-- Categories -->
+            <!-- Collections -->
             <div class="footer-col">
-                <h4 class="footer-heading">COLLECTIONS</h4>
+                <h4 class="footer-heading"><?= e(__('footer_categories')) ?></h4>
                 <ul class="footer-links">
-                    <li><a href="<?= base_url('shop') ?>">ALL STREETWEAR</a></li>
-                    <li><a href="<?= base_url('category/baddie') ?>">BADDIE / REBEL</a></li>
-                    <li><a href="<?= base_url('category/oversized-comfort') ?>">220 GSM OVERSIZED</a></li>
-                    <li><a href="<?= base_url('category/luxury-mindset') ?>">LUXURY MINDSET</a></li>
-                    <li><a href="<?= base_url('category/couple-collections') ?>">COUPLE EDITIONS</a></li>
-                    <li><a href="<?= base_url('category/henley-neck-t-shirts') ?>">CLASSIC HENLEYS</a></li>
+                    <li><a href="<?= base_url('shop') ?>"><?= e(__('nav_shop_all')) ?></a></li>
+                    <li><a href="<?= base_url('category/baddie') ?>"><?= e(__('nav_baddie')) ?></a></li>
+                    <li><a href="<?= base_url('category/oversized-comfort') ?>"><?= e(__('nav_oversized')) ?></a></li>
+                    <li><a href="<?= base_url('category/luxury-mindset') ?>"><?= e(__('nav_luxury')) ?></a></li>
+                    <li><a href="<?= base_url('category/couple-collections') ?>"><?= e(__('nav_couple')) ?></a></li>
+                    <li><a href="<?= base_url('category/henley-neck-t-shirts') ?>"><?= e(__('nav_henley')) ?></a></li>
                 </ul>
             </div>
 
-            <!-- Client Services -->
+            <!-- Customer Care -->
             <div class="footer-col">
-                <h4 class="footer-heading">CLIENT SERVICES</h4>
+                <h4 class="footer-heading"><?= e(__('footer_help')) ?></h4>
                 <ul class="footer-links">
-                    <li><a href="#" data-modal-target="track-modal">TRACK LIVE ORDER</a></li>
-                    <li><a href="<?= base_url('shop') ?>">14-DAY SIZE EXCHANGE</a></li>
-                    <li><a href="<?= base_url('shop') ?>">SIZE & FIT GUIDE</a></li>
-                    <li><a href="<?= base_url('shop') ?>">DELIVERY & SHIPPING</a></li>
-                    <li><a href="<?= base_url('checkout') ?>">GUEST CHECKOUT</a></li>
-                    <li><a href="https://wa.me/<?= e($whatsappClean) ?>?text=<?= urlencode('Hi Amethyst! I need support.') ?>" target="_blank" rel="noopener">WHATSAPP CONCIERGE</a></li>
+                    <li><a href="#" data-modal-target="track-modal"><?= e(__('track_order')) ?></a></li>
+                    <li><a href="<?= base_url('shop') ?>">14-Day Size Exchange Policy</a></li>
+                    <li><a href="<?= base_url('shop') ?>">Size & Measurement Guide</a></li>
+                    <li><a href="<?= base_url('shop') ?>">Islandwide Shipping Rates</a></li>
+                    <li><a href="<?= base_url('checkout') ?>">Fast Guest Checkout</a></li>
+                    <li><a href="https://wa.me/<?= e($whatsappClean) ?>?text=<?= urlencode('Hi Amethyst! I need help with custom t-shirt printing.') ?>" target="_blank" rel="noopener">Custom Apparel Orders</a></li>
                 </ul>
             </div>
 
-            <!-- Authentic Garment Tag Box -->
-            <div class="footer-col footer-col--spec">
-                <div class="garment-spec-box">
-                    <div class="garment-spec-box__header">
-                        <span class="garment-spec-box__title">SPEC // SPECIFICATION</span>
-                        <span class="garment-spec-box__code">LK-2026</span>
-                    </div>
-                    <ul class="garment-spec-box__list">
-                        <li><span>FABRIC:</span> <strong>100% COMBED COTTON</strong></li>
-                        <li><span>WEIGHT:</span> <strong>180 – 220 GSM HEAVYWEIGHT</strong></li>
-                        <li><span>ORIGIN:</span> <strong>COLOMBO, SRI LANKA</strong></li>
-                        <li><span>CARE:</span> <strong>WASH COLD / DO NOT IRON ON PRINT</strong></li>
-                    </ul>
-                    <div class="garment-spec-box__barcode">
-                        <span class="barcode-display">*AMETHYST-AUTHENTIC*</span>
-                    </div>
+            <!-- Clean Contact Us & Social Media -->
+            <div class="footer-col footer-col--contact">
+                <h4 class="footer-heading"><?= e(__('footer_contact')) ?></h4>
+                <ul class="footer-contact-list">
+                    <li>
+                        <span class="contact-label">HOTLINE / WHATSAPP:</span>
+                        <a href="https://wa.me/<?= e($whatsappClean) ?>" target="_blank" rel="noopener" class="contact-value highlight">+94 77 000 0000</a>
+                    </li>
+                    <li>
+                        <span class="contact-label">EMAIL INQUIRIES:</span>
+                        <a href="mailto:<?= e($contactEmail) ?>" class="contact-value"><?= e($contactEmail) ?></a>
+                    </li>
+                    <li>
+                        <span class="contact-label">LOCATION:</span>
+                        <span class="contact-value">Colombo, Sri Lanka</span>
+                    </li>
+                </ul>
+
+                <h4 class="footer-heading" style="margin-top: 24px;"><?= e(__('footer_follow')) ?></h4>
+                <div class="footer-socials">
+                    <a href="https://instagram.com/amethystclothing.lk" target="_blank" rel="noopener" class="social-link" title="Instagram">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="2" width="20" height="20" rx="0" ry="0"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                        <span>INSTAGRAM</span>
+                    </a>
+                    <a href="https://facebook.com/amethystclothing.lk" target="_blank" rel="noopener" class="social-link" title="Facebook">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                        </svg>
+                        <span>FACEBOOK</span>
+                    </a>
+                    <a href="https://tiktok.com/@amethystclothing.lk" target="_blank" rel="noopener" class="social-link" title="TikTok">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+                        </svg>
+                        <span>TIKTOK</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -84,7 +100,7 @@ $whatsappClean = preg_replace('/[^0-9]/', '', $whatsappNumber);
         <!-- Payment Badges & Legal Bottom Row -->
         <div class="footer-bottom">
             <div class="footer-bottom__copy">
-                <p>&copy; <?= date('Y') ?> AMETHYSTCLOTHING.LK. ALL RIGHTS RESERVED. "<?= e($slogan) ?>"</p>
+                <p>&copy; <?= date('Y') ?> AMETHYSTCLOTHING.LK. <?= e(__('footer_rights')) ?> "<?= e($slogan) ?>"</p>
             </div>
             <div class="footer-payments">
                 <span class="payment-badge">CASH ON DELIVERY</span>
@@ -99,7 +115,7 @@ $whatsappClean = preg_replace('/[^0-9]/', '', $whatsappNumber);
 <!-- Floating Quick Action Button (Bottom-Right) -->
 <div class="floating-hub" id="floating-hub">
     <div class="floating-hub__menu" id="floating-menu" aria-hidden="true">
-        <a href="https://wa.me/<?= e($whatsappClean) ?>?text=<?= urlencode('Hi Amethyst! I want to order / need assistance.') ?>" 
+        <a href="https://wa.me/<?= e($whatsappClean) ?>?text=<?= urlencode('Hi Amethyst! I want to order / need custom t-shirt printing assistance.') ?>" 
            target="_blank" rel="noopener" 
            class="floating-hub__action floating-hub__action--wa" 
            title="WhatsApp Concierge">
@@ -115,7 +131,7 @@ $whatsappClean = preg_replace('/[^0-9]/', '', $whatsappNumber);
                 <circle cx="5.5" cy="18.5" r="2.5"></circle>
                 <circle cx="18.5" cy="18.5" r="2.5"></circle>
             </svg>
-            <span>TRACK ORDER</span>
+            <span><?= e(__('track_order')) ?></span>
         </button>
         <button type="button" class="floating-hub__action" id="scroll-top-btn" title="Scroll to Top">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

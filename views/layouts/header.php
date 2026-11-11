@@ -2,9 +2,10 @@
 /**
  * Header & Navigation Component — Amethystclothing.lk
  * Sharp Minimalist Luxury / High-Contrast Streetwear
+ * Bilingual Support: EN | සිං + Multi-Currency LKR | USD
  */
 
-$announcementText = get_announcement_text();
+$currentLang = current_lang();
 $currentCurrency = current_currency();
 $currencies = get_currencies();
 ?>
@@ -12,27 +13,39 @@ $currencies = get_currencies();
 <aside class="announcement-bar" role="region" aria-label="Announcement">
     <div class="container announcement-bar__inner">
         <div class="announcement-bar__left">
-            <span class="announcement-bar__slogan">JUST OWN YOUR STYLE!</span>
+            <span class="announcement-bar__slogan"><?= e(__('slogan')) ?></span>
         </div>
         <div class="announcement-bar__center">
-            <p class="announcement-bar__text"><?= e($announcementText) ?></p>
+            <p class="announcement-bar__text"><?= e(__('announcement')) ?></p>
         </div>
         <div class="announcement-bar__right">
+            <!-- Order Tracking Trigger -->
             <button type="button" class="announcement-bar__link" data-modal-target="track-modal">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <rect x="1" y="3" width="15" height="13"></rect>
                     <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
                     <circle cx="5.5" cy="18.5" r="2.5"></circle>
                     <circle cx="18.5" cy="18.5" r="2.5"></circle>
                 </svg>
-                <span>TRACK ORDER</span>
+                <span><?= e(__('track_order')) ?></span>
             </button>
-            <div class="currency-picker">
-                <span class="currency-picker__label">CURRENCY:</span>
-                <div class="currency-picker__switch">
+
+            <!-- Language Switcher EN | සිං -->
+            <div class="top-switch-group">
+                <span class="top-switch-group__label"><?= e(__('language')) ?>:</span>
+                <div class="top-switch">
+                    <a href="?lang=en" class="top-switch__btn <?= $currentLang === 'en' ? 'is-active' : '' ?>">EN</a>
+                    <a href="?lang=si" class="top-switch__btn <?= $currentLang === 'si' ? 'is-active' : '' ?>">සිං</a>
+                </div>
+            </div>
+
+            <!-- Currency Switcher LKR | USD -->
+            <div class="top-switch-group">
+                <span class="top-switch-group__label"><?= e(__('currency')) ?>:</span>
+                <div class="top-switch">
                     <?php foreach ($currencies as $c): ?>
                         <a href="?currency=<?= e($c['code']) ?>" 
-                           class="currency-picker__btn <?= $currentCurrency === $c['code'] ? 'is-active' : '' ?>">
+                           class="top-switch__btn <?= $currentCurrency === $c['code'] ? 'is-active' : '' ?>">
                             <?= e($c['code']) ?>
                         </a>
                     <?php endforeach; ?>
@@ -54,29 +67,29 @@ $currencies = get_currencies();
 
         <!-- Brand Logo -->
         <a href="<?= base_url() ?>" class="site-header__logo" aria-label="Amethyst Home">
-            <img src="<?= asset_url('images/logo_b-color.png') ?>" alt="AMETHYST — Just own Your Style!" class="site-header__logo-img" width="180" height="42">
+            <img src="<?= asset_url('images/logo_b-color.png') ?>" alt="AMETHYST — <?= e(__('slogan')) ?>" class="site-header__logo-img" width="180" height="42">
         </a>
 
         <!-- Main Desktop Navigation -->
         <nav class="site-nav" id="site-nav" aria-label="Main Navigation">
             <ul class="site-nav__list">
                 <li class="site-nav__item">
-                    <a href="<?= base_url('shop') ?>" class="site-nav__link">SHOP ALL</a>
+                    <a href="<?= base_url('shop') ?>" class="site-nav__link"><?= e(__('nav_shop_all')) ?></a>
                 </li>
                 <li class="site-nav__item">
-                    <a href="<?= base_url('category/baddie') ?>" class="site-nav__link">BADDIE</a>
+                    <a href="<?= base_url('category/baddie') ?>" class="site-nav__link"><?= e(__('nav_baddie')) ?></a>
                 </li>
                 <li class="site-nav__item">
-                    <a href="<?= base_url('category/oversized-comfort') ?>" class="site-nav__link">OVERSIZED</a>
+                    <a href="<?= base_url('category/oversized-comfort') ?>" class="site-nav__link"><?= e(__('nav_oversized')) ?></a>
                 </li>
                 <li class="site-nav__item">
-                    <a href="<?= base_url('category/luxury-mindset') ?>" class="site-nav__link">LUXURY MINDSET</a>
+                    <a href="<?= base_url('category/luxury-mindset') ?>" class="site-nav__link"><?= e(__('nav_luxury')) ?></a>
                 </li>
                 <li class="site-nav__item">
-                    <a href="<?= base_url('category/couple-collections') ?>" class="site-nav__link">COUPLE</a>
+                    <a href="<?= base_url('category/couple-collections') ?>" class="site-nav__link"><?= e(__('nav_couple')) ?></a>
                 </li>
                 <li class="site-nav__item">
-                    <a href="<?= base_url('category/henley-neck-t-shirts') ?>" class="site-nav__link">HENLEY</a>
+                    <a href="<?= base_url('category/henley-neck-t-shirts') ?>" class="site-nav__link"><?= e(__('nav_henley')) ?></a>
                 </li>
             </ul>
         </nav>
@@ -93,7 +106,7 @@ $currencies = get_currencies();
                 </button>
                 <div class="header-search__drawer" id="search-drawer" aria-hidden="true">
                     <form action="<?= base_url('shop') ?>" method="GET" class="header-search__form">
-                        <input type="text" name="q" class="header-search__input" placeholder="SEARCH STREETWEAR, OVERSIZED, HENLEY, SKUS..." autocomplete="off">
+                        <input type="text" name="q" class="header-search__input" placeholder="<?= e(__('search_placeholder')) ?>" autocomplete="off">
                         <button type="submit" class="header-search__submit" aria-label="Search">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -112,7 +125,7 @@ $currencies = get_currencies();
                 <span class="action-btn__badge">0</span>
             </a>
 
-            <!-- Customer Account / Phone Auth -->
+            <!-- Customer Account / Track Order Modal Trigger -->
             <button type="button" class="action-btn" data-modal-target="track-modal" aria-label="Account">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -122,10 +135,42 @@ $currencies = get_currencies();
 
             <!-- Cart Trigger Button -->
             <button type="button" class="cart-trigger" id="cart-trigger" aria-label="View shopping bag">
-                <span class="cart-trigger__label">BAG</span>
+                <span class="cart-trigger__label"><?= e(__('bag')) ?></span>
                 <span class="cart-trigger__count" id="cart-item-count">0</span>
                 <span class="cart-trigger__total" id="cart-subtotal"><?= format_price(0) ?></span>
             </button>
         </div>
     </div>
 </header>
+
+<!-- Mobile Navigation Drawer -->
+<div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
+    <div class="mobile-nav-drawer__overlay" id="mobile-nav-overlay"></div>
+    <div class="mobile-nav-drawer__panel">
+        <div class="mobile-nav-drawer__head">
+            <img src="<?= asset_url('images/logo_b-color.png') ?>" alt="AMETHYST" width="140" height="32">
+            <button class="mobile-nav-drawer__close" id="mobile-nav-close" aria-label="Close menu">&times;</button>
+        </div>
+        <ul class="mobile-nav-drawer__list">
+            <li><a href="<?= base_url('shop') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_shop_all')) ?></a></li>
+            <li><a href="<?= base_url('category/baddie') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_baddie')) ?></a></li>
+            <li><a href="<?= base_url('category/oversized-comfort') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_oversized')) ?></a></li>
+            <li><a href="<?= base_url('category/luxury-mindset') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_luxury')) ?></a></li>
+            <li><a href="<?= base_url('category/couple-collections') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_couple')) ?></a></li>
+            <li><a href="<?= base_url('category/henley-neck-t-shirts') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_henley')) ?></a></li>
+            <li><a href="<?= base_url('track-order') ?>" class="mobile-nav-drawer__link"><?= e(__('track_order')) ?></a></li>
+        </ul>
+        <div class="mobile-nav-drawer__foot">
+            <div class="mobile-nav-switch">
+                <span><?= e(__('language')) ?>:</span>
+                <a href="?lang=en" class="<?= $currentLang === 'en' ? 'is-active' : '' ?>">EN</a>
+                <a href="?lang=si" class="<?= $currentLang === 'si' ? 'is-active' : '' ?>">සිං</a>
+            </div>
+            <div class="mobile-nav-switch">
+                <span><?= e(__('currency')) ?>:</span>
+                <a href="?currency=LKR" class="<?= $currentCurrency === 'LKR' ? 'is-active' : '' ?>">LKR</a>
+                <a href="?currency=USD" class="<?= $currentCurrency === 'USD' ? 'is-active' : '' ?>">USD</a>
+            </div>
+        </div>
+    </div>
+</div>
