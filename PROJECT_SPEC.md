@@ -129,7 +129,18 @@ amethystclothing/
 | `GET` | `/product/{slug}` | `views/pages/product.php` |
 | `GET` | `/track-order` | `views/pages/track-order.php` |
 | `GET` | `/checkout` | `views/pages/checkout.php` |
-| `POST` | `/api/*` | AJAX endpoints |
+| `GET` | `/checkout-success` | `views/pages/checkout-success.php` |
+| `GET` | `/invoice` | `views/pages/invoice.php` (printable barcode) |
+| `GET` | `/admin/login` | `views/pages/admin/login.php` (standalone) |
+| `GET` | `/admin/dashboard` | `views/pages/admin/dashboard.php` (requires admin auth) |
+| `GET` | `/admin/orders` | `views/pages/admin/orders.php` (order fulfillment drawer) |
+| `GET` | `/admin/products` | `views/pages/admin/products.php` (inventory & quick stock) |
+| `GET` | `/admin/logout` | `views/pages/admin/logout.php` |
+| `POST` | `/ajax/cart.php` | Session cart operations |
+| `POST` | `/ajax/checkout_process.php` | Atomic order transaction |
+| `POST` | `/ajax/admin_auth.php` | Admin authentication endpoint |
+| `POST` | `/ajax/update_order_status.php` | Order status & courier timeline update |
+| `POST` | `/ajax/update_stock.php` | Real-time variant stock adjustment |
 
 ---
 

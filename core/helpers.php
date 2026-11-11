@@ -161,3 +161,41 @@ function flash(string $key, ?string $message = null)
     unset($_SESSION['_flash'][$key]);
     return $val;
 }
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN AUTHENTICATION HELPERS                                      */
+/* ------------------------------------------------------------------ */
+
+function admin_user(): ?array
+{
+    static $admin = false;
+    if ($admin !== false) return $admin;
+
+    if (empty($_SESSION['admin_id'])) {
+        $admin = null;
+        return null;
+    }
+
+    try {
+        $stmt = db()->prepare("SELECT id, name, username, email, phone, role, is_active, last_login_at FROM admins WHERE id = ? AND is_active = 1 LIMIT 1");
+        $stmt->execute([(int) $_SESSION['admin_id']]);
+        $res = $stmt->fetch();
+        $admin = $res ?: null;
+    } catch (Exception $e) {
+        $admin = null;
+    }
+    return $admin;
+}
+
+function is_admin_logged_in(): bool
+{
+    return admin_user() !== null;
+}
+
+function require_admin_auth(): void
+{
+    if (!is_admin_logged_in()) {
+        redirect(base_url('admin/login'));
+    }
+}
+

@@ -174,6 +174,24 @@ $currentStageIndex = $order ? ($stageOrder[$order['order_status']] ?? 1) : 0;
                         <span>DELIVERY DESTINATION:</span>
                         <strong><?= e($order['shipping_city']) ?>, <?= e($order['shipping_district']) ?></strong>
                     </div>
+                    <?php if (!empty($order['courier_partner'])): ?>
+                        <div class="track-details-row">
+                            <span>COURIER PARTNER:</span>
+                            <strong style="color: var(--brand-deep);"><?= e($order['courier_partner']) ?></strong>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($order['courier_tracking_number'])): ?>
+                        <div class="track-details-row">
+                            <span>COURIER WAYBILL / TRACKING #:</span>
+                            <strong style="font-family: var(--font-mono);"><?= e($order['courier_tracking_number']) ?></strong>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($statusHistory[0]['public_comment'])): ?>
+                        <div class="track-details-row" style="background: rgba(78, 42, 132, 0.05); padding: 8px 12px; border-left: 3px solid var(--brand-deep); margin-top: 6px;">
+                            <span>LATEST DISPATCH UPDATE:</span>
+                            <span style="font-size: 13px; color: var(--text-primary);"><?= e($statusHistory[0]['public_comment']) ?></span>
+                        </div>
+                    <?php endif; ?>
                     <div class="track-details-row">
                         <span>TOTAL CASH DUE ON ARRIVAL:</span>
                         <strong style="color: var(--brand-deep); font-size: 16px;"><?= format_price((float)$order['grand_total']) ?></strong>

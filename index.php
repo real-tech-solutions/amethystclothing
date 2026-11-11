@@ -56,6 +56,14 @@ $router->get('checkout',           __DIR__ . '/views/pages/checkout.php');
 $router->get('checkout-success',   __DIR__ . '/views/pages/checkout-success.php');
 $router->get('invoice',            __DIR__ . '/views/pages/invoice.php');
 
+// ── Admin Panel Routes ──
+$router->get('admin',              __DIR__ . '/views/pages/admin/dashboard.php');
+$router->get('admin/login',        __DIR__ . '/views/pages/admin/login.php');
+$router->get('admin/dashboard',    __DIR__ . '/views/pages/admin/dashboard.php');
+$router->get('admin/orders',       __DIR__ . '/views/pages/admin/orders.php');
+$router->get('admin/products',     __DIR__ . '/views/pages/admin/products.php');
+$router->get('admin/logout',       __DIR__ . '/views/pages/admin/logout.php');
+
 // Resolve current request
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = trim($_GET['route'] ?? '', '/');
