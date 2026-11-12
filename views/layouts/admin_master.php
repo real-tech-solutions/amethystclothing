@@ -648,6 +648,18 @@ $pageTitle = $pageTitle ?? 'Admin Console // AMETHYST';
                             <?php endif; ?>
                         </a>
                     </li>
+                    <li class="admin-nav-item">
+                        <a href="<?= base_url('admin/categories') ?>" class="admin-nav-link <?= $currentRoute === 'admin/categories' ? 'active' : '' ?>">
+                            <span>Categories</span>
+                            <span style="font-family:'Space Mono';font-size:11px;">05</span>
+                        </a>
+                    </li>
+                    <li class="admin-nav-item">
+                        <a href="<?= base_url('admin/size-charts') ?>" class="admin-nav-link <?= $currentRoute === 'admin/size-charts' ? 'active' : '' ?>">
+                            <span>Size Guides</span>
+                            <span style="font-family:'Space Mono';font-size:11px;">06</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
 

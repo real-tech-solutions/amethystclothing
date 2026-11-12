@@ -8,7 +8,8 @@ $pdo = db();
 
 // Fetch product with specs, categories and size chart
 $stmt = $pdo->prepare("
-    SELECT p.*, ps.*, b.name AS brand_name, c.name AS category_name, c.slug AS category_slug, sc.measurements_json, sc.title AS size_chart_title
+    SELECT p.*, ps.*, b.name AS brand_name, c.name AS category_name, c.slug AS category_slug, 
+           sc.measurements_json, sc.title AS size_chart_title, sc.fit_type AS size_chart_fit, sc.notes AS size_chart_notes
     FROM products p
     LEFT JOIN product_specifications ps ON p.id = ps.product_id
     LEFT JOIN brands b ON p.brand_id = b.id
@@ -22,8 +23,30 @@ $product = $stmt->fetch();
 
 $variants = [];
 $mediaItems = [];
+$sizeChart = null;
 
 if ($product) {
+    // Resolve size guide chart
+    if (!empty($product['measurements_json'])) {
+        $sizeChart = [
+            'title' => $product['size_chart_title'] ?? 'Amethyst Fit & Size Guide',
+            'fit_type' => $product['size_chart_fit'] ?? 'Regular Fit',
+            'notes' => $product['size_chart_notes'] ?? 'All measurements are in inches unless switched to centimeters.',
+            'measurements' => json_decode($product['measurements_json'], true) ?: []
+        ];
+    } else {
+        // Fallback to active size chart in DB
+        $scStmt = $pdo->query("SELECT * FROM size_charts ORDER BY id ASC LIMIT 1");
+        $fallbackSc = $scStmt->fetch();
+        if ($fallbackSc) {
+            $sizeChart = [
+                'title' => $fallbackSc['title'],
+                'fit_type' => $fallbackSc['fit_type'],
+                'notes' => $fallbackSc['notes'],
+                'measurements' => json_decode($fallbackSc['measurements_json'], true) ?: []
+            ];
+        }
+    }
     // Fetch all variants with stock quantity
     $vStmt = $pdo->prepare("SELECT id, sku, color_name, color_hex, size_code, total_stock_quantity, price_override FROM product_variants WHERE product_id = ? ORDER BY sort_order ASC");
     $vStmt->execute([$product['id']]);
@@ -140,9 +163,17 @@ $primaryImage = !empty($mediaItems[0]['url'])
                     <!-- Dynamic Size Selector (Reacts via JS) -->
                     <div class="product-detail__variants">
                         <div class="variant-group">
-                            <div class="variant-group__header">
-                                <span class="variant-label"><?= e(__('select_size')) ?></span>
-                                <span class="selected-size-name" id="selected-size-label"></span>
+                            <div class="variant-group__header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <div>
+                                    <span class="variant-label"><?= e(__('select_size')) ?></span>
+                                    <span class="selected-size-name" id="selected-size-label"></span>
+                                </div>
+                                <?php if ($sizeChart && !empty($sizeChart['measurements'])): ?>
+                                    <button type="button" id="btn-open-size-guide" style="background:none; border:none; padding:0; cursor:pointer; font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--brand-deep); font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 6H3v12h18V6z"></path><path d="M7 6v4m4-4v2m4-2v4m4-4v2"></path></svg>
+                                        <?= e(__('size_guide') ?? 'SIZE & FIT GUIDE') ?>
+                                    </button>
+                                <?php endif; ?>
                             </div>
                             <div class="size-selector" id="size-selector-grid">
                                 <?php foreach ($variants as $idx => $v): ?>
@@ -482,7 +513,182 @@ $primaryImage = !empty($mediaItems[0]['url'])
                         });
                     });
                 }
+
+                // 3. Size Guide Modal & Unit Conversion Engine
+                const openSizeGuideBtn = document.getElementById('btn-open-size-guide');
+                const closeSizeGuideBtn = document.getElementById('btn-close-size-guide');
+                const sizeGuideModal = document.getElementById('size-guide-modal');
+                const sizeGuideOverlay = document.getElementById('size-guide-overlay');
+                const unitInchBtn = document.getElementById('unit-inch-btn');
+                const unitCmBtn = document.getElementById('unit-cm-btn');
+
+                function toggleSizeGuideModal(show) {
+                    if (!sizeGuideModal) return;
+                    if (show) {
+                        sizeGuideModal.classList.add('is-open');
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        sizeGuideModal.classList.remove('is-open');
+                        document.body.style.overflow = '';
+                    }
+                }
+
+                if (openSizeGuideBtn) {
+                    openSizeGuideBtn.addEventListener('click', () => toggleSizeGuideModal(true));
+                }
+                if (closeSizeGuideBtn) {
+                    closeSizeGuideBtn.addEventListener('click', () => toggleSizeGuideModal(false));
+                }
+                if (sizeGuideOverlay) {
+                    sizeGuideOverlay.addEventListener('click', () => toggleSizeGuideModal(false));
+                }
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && sizeGuideModal && sizeGuideModal.classList.contains('is-open')) {
+                        toggleSizeGuideModal(false);
+                    }
+                });
+
+                function setMeasurementUnit(unit) {
+                    if (!sizeGuideModal) return;
+                    const unitLabels = sizeGuideModal.querySelectorAll('.unit-label');
+                    const chestCells = sizeGuideModal.querySelectorAll('.val-chest');
+                    const lengthCells = sizeGuideModal.querySelectorAll('.val-length');
+                    const shoulderCells = sizeGuideModal.querySelectorAll('.val-shoulder');
+
+                    if (unit === 'cm') {
+                        if (unitCmBtn) {
+                            unitCmBtn.classList.add('is-active');
+                            unitCmBtn.style.background = 'var(--brand-deep)';
+                            unitCmBtn.style.color = '#FFFFFF';
+                        }
+                        if (unitInchBtn) {
+                            unitInchBtn.classList.remove('is-active');
+                            unitInchBtn.style.background = 'transparent';
+                            unitInchBtn.style.color = 'var(--text-primary)';
+                        }
+
+                        unitLabels.forEach(el => el.textContent = 'CM');
+
+                        const convert = (cells) => {
+                            cells.forEach(td => {
+                                const inch = parseFloat(td.dataset.valInch) || 0;
+                                td.textContent = (inch * 2.54).toFixed(1) + ' cm';
+                            });
+                        };
+                        convert(chestCells);
+                        convert(lengthCells);
+                        convert(shoulderCells);
+                    } else {
+                        if (unitInchBtn) {
+                            unitInchBtn.classList.add('is-active');
+                            unitInchBtn.style.background = 'var(--brand-deep)';
+                            unitInchBtn.style.color = '#FFFFFF';
+                        }
+                        if (unitCmBtn) {
+                            unitCmBtn.classList.remove('is-active');
+                            unitCmBtn.style.background = 'transparent';
+                            unitCmBtn.style.color = 'var(--text-primary)';
+                        }
+
+                        unitLabels.forEach(el => el.textContent = 'IN');
+
+                        const convert = (cells) => {
+                            cells.forEach(td => {
+                                const inch = parseFloat(td.dataset.valInch) || 0;
+                                td.textContent = inch + ' in';
+                            });
+                        };
+                        convert(chestCells);
+                        convert(lengthCells);
+                        convert(shoulderCells);
+                    }
+                }
+
+                if (unitInchBtn && unitCmBtn) {
+                    unitInchBtn.addEventListener('click', () => setMeasurementUnit('inch'));
+                    unitCmBtn.addEventListener('click', () => setMeasurementUnit('cm'));
+                }
             </script>
+
+            <?php if ($sizeChart && !empty($sizeChart['measurements'])): ?>
+                <!-- Interactive Size Guide Modal -->
+                <div class="modal" id="size-guide-modal" aria-hidden="true">
+                    <div class="modal__overlay" id="size-guide-overlay"></div>
+                    <div class="modal__panel" style="width: 580px; max-width: 95vw; max-height: 90vh; overflow-y: auto;">
+                        <div class="modal__head" style="background: #FAF9FC; border-bottom: 1px solid var(--border-crisp);">
+                            <div>
+                                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep); letter-spacing: 0.12em; text-transform: uppercase;">
+                                    GARMENT SPECIFICATION // FIT GUIDE
+                                </span>
+                                <h3 class="modal__title" style="margin: 4px 0 0; font-size: 16px;"><?= e($sizeChart['title']) ?></h3>
+                            </div>
+                            <button type="button" class="modal__close" id="btn-close-size-guide" aria-label="Close" style="background:none; border:none; cursor:pointer; font-size:24px;">&times;</button>
+                        </div>
+                        <div class="modal__body" style="padding: 24px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; flex-wrap:wrap; gap:12px;">
+                                <div style="display:inline-flex; align-items:center; gap:8px;">
+                                    <span style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: #716B80;">FIT PROFILE:</span>
+                                    <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; background: var(--brand-deep); color: #FFFFFF; padding: 2px 8px; text-transform: uppercase;">
+                                        <?= e($sizeChart['fit_type']) ?>
+                                    </span>
+                                </div>
+                                
+                                <!-- Unit Switcher (Inches / CM) -->
+                                <div style="display:flex; align-items:center; gap:4px; border: 1px solid var(--border-crisp); padding: 2px; background: #FAF9FC;">
+                                    <button type="button" id="unit-inch-btn" class="unit-toggle-btn is-active" style="padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: none; cursor: pointer; background: var(--brand-deep); color: #FFFFFF;">
+                                        INCHES
+                                    </button>
+                                    <button type="button" id="unit-cm-btn" class="unit-toggle-btn" style="padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: none; cursor: pointer; background: transparent; color: var(--text-primary);">
+                                        CM
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Matrix Table -->
+                            <div style="overflow-x: auto; border: 1px solid var(--border-crisp);">
+                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+                                    <thead>
+                                        <tr style="background: #0B0910; color: #FFFFFF; font-family: var(--font-mono); text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">
+                                            <th style="padding: 10px 14px; border-right: 1px solid #23202E;">SIZE</th>
+                                            <th style="padding: 10px 14px; border-right: 1px solid #23202E;">CHEST (<span class="unit-label">IN</span>)</th>
+                                            <th style="padding: 10px 14px; border-right: 1px solid #23202E;">LENGTH (<span class="unit-label">IN</span>)</th>
+                                            <th style="padding: 10px 14px;">SHOULDER (<span class="unit-label">IN</span>)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($sizeChart['measurements'] as $row): 
+                                            $size = $row['size'] ?? '';
+                                            $chest = (float)($row['chest_inch'] ?? $row['chest'] ?? 0);
+                                            $len = (float)($row['length_inch'] ?? $row['length'] ?? 0);
+                                            $shld = (float)($row['shoulder_inch'] ?? $row['shoulder'] ?? 0);
+                                        ?>
+                                            <tr style="border-bottom: 1px solid var(--border-crisp); font-family: var(--font-mono);">
+                                                <td style="padding: 10px 14px; font-weight: 800; background: #FAF9FC; border-right: 1px solid var(--border-crisp);"><?= e($size) ?></td>
+                                                <td style="padding: 10px 14px; border-right: 1px solid var(--border-crisp);" class="val-chest" data-val-inch="<?= $chest ?>"><?= $chest ?> in</td>
+                                                <td style="padding: 10px 14px; border-right: 1px solid var(--border-crisp);" class="val-length" data-val-inch="<?= $len ?>"><?= $len ?> in</td>
+                                                <td style="padding: 10px 14px;" class="val-shoulder" data-val-inch="<?= $shld ?>"><?= $shld ?> in</td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <?php if (!empty($sizeChart['notes'])): ?>
+                                <div style="margin-top: 16px; padding: 12px 14px; background: #FAF9FC; border-left: 3px solid var(--brand-deep); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                                    <strong style="color: var(--text-primary); text-transform: uppercase; font-family: var(--font-mono); font-size: 10px; display: block; margin-bottom: 4px;">FIT NOTES & SIZING RECOMMENDATION:</strong>
+                                    <?= nl2br(e($sizeChart['notes'])) ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <div style="margin-top: 16px; font-size: 11px; color: #8C869B; font-family: var(--font-mono); line-height: 1.5;">
+                                &bull; Chest: Measure around fullest part of chest, tape horizontal.<br>
+                                &bull; Length: Measure from highest point of shoulder straight to hem.<br>
+                                &bull; Shoulder: Measure from shoulder tip across back to opposite shoulder tip.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         <?php else: ?>
             <div style="text-align:center; padding: 80px 20px;">
                 <h2 style="font-family: 'Archivo Black', sans-serif; font-size: 32px;">PRODUCT NOT FOUND</h2>

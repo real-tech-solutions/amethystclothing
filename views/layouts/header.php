@@ -8,6 +8,24 @@
 $currentLang = current_lang();
 $currentCurrency = current_currency();
 $currencies = get_currencies();
+
+// Dynamic navigation categories with subcategory hierarchy
+$navCategories = [];
+try {
+    $allCats = db()->query("SELECT id, parent_id, name, slug FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC")->fetchAll();
+    $subMap = [];
+    foreach ($allCats as $ac) {
+        if (!empty($ac['parent_id'])) {
+            $subMap[$ac['parent_id']][] = $ac;
+        }
+    }
+    foreach ($allCats as $ac) {
+        if (empty($ac['parent_id'])) {
+            $ac['subcategories'] = $subMap[$ac['id']] ?? [];
+            $navCategories[] = $ac;
+        }
+    }
+} catch (Exception $e) {}
 ?>
 <!-- Top Utility / Announcement Bar -->
 <aside class="announcement-bar" role="region" aria-label="Announcement">
@@ -76,21 +94,25 @@ $currencies = get_currencies();
                 <li class="site-nav__item">
                     <a href="<?= base_url('shop') ?>" class="site-nav__link"><?= e(__('nav_shop_all')) ?></a>
                 </li>
-                <li class="site-nav__item">
-                    <a href="<?= base_url('category/baddie') ?>" class="site-nav__link"><?= e(__('nav_baddie')) ?></a>
-                </li>
-                <li class="site-nav__item">
-                    <a href="<?= base_url('category/oversized-comfort') ?>" class="site-nav__link"><?= e(__('nav_oversized')) ?></a>
-                </li>
-                <li class="site-nav__item">
-                    <a href="<?= base_url('category/luxury-mindset') ?>" class="site-nav__link"><?= e(__('nav_luxury')) ?></a>
-                </li>
-                <li class="site-nav__item">
-                    <a href="<?= base_url('category/couple-collections') ?>" class="site-nav__link"><?= e(__('nav_couple')) ?></a>
-                </li>
-                <li class="site-nav__item">
-                    <a href="<?= base_url('category/henley-neck-t-shirts') ?>" class="site-nav__link"><?= e(__('nav_henley')) ?></a>
-                </li>
+                <?php foreach ($navCategories as $nc): ?>
+                    <?php if (!empty($nc['subcategories'])): ?>
+                        <li class="site-nav__item site-nav__item--has-sub">
+                            <a href="<?= base_url('category/' . $nc['slug']) ?>" class="site-nav__link">
+                                <?= e($nc['name']) ?> <span style="font-size:9px;margin-left:2px;">▾</span>
+                            </a>
+                            <ul class="site-nav__sub-menu">
+                                <li><a href="<?= base_url('category/' . $nc['slug']) ?>">All <?= e($nc['name']) ?></a></li>
+                                <?php foreach ($nc['subcategories'] as $sub): ?>
+                                    <li><a href="<?= base_url('category/' . $sub['slug']) ?>"><?= e($sub['name']) ?></a></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </li>
+                    <?php else: ?>
+                        <li class="site-nav__item">
+                            <a href="<?= base_url('category/' . $nc['slug']) ?>" class="site-nav__link"><?= e($nc['name']) ?></a>
+                        </li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </ul>
         </nav>
 
@@ -105,8 +127,8 @@ $currencies = get_currencies();
                     </svg>
                 </button>
                 <div class="header-search__drawer" id="search-drawer" aria-hidden="true">
-                    <form action="<?= base_url('shop') ?>" method="GET" class="header-search__form">
-                        <input type="text" name="q" class="header-search__input" placeholder="<?= e(__('search_placeholder')) ?>" autocomplete="off">
+                    <form action="<?= base_url('shop') ?>" method="GET" class="header-search__form" id="header-search-form">
+                        <input type="text" name="q" id="header-search-input" class="header-search__input" placeholder="<?= e(__('search_placeholder')) ?>" autocomplete="off">
                         <button type="submit" class="header-search__submit" aria-label="Search">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -114,6 +136,8 @@ $currencies = get_currencies();
                             </svg>
                         </button>
                     </form>
+                    <!-- Live Predictive Results Dropdown -->
+                    <div id="live-search-results" class="live-search-dropdown" style="display:none;"></div>
                 </div>
             </div>
 
@@ -164,11 +188,22 @@ $currencies = get_currencies();
         </div>
         <ul class="mobile-nav-drawer__list">
             <li><a href="<?= base_url('shop') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_shop_all')) ?></a></li>
-            <li><a href="<?= base_url('category/baddie') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_baddie')) ?></a></li>
-            <li><a href="<?= base_url('category/oversized-comfort') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_oversized')) ?></a></li>
-            <li><a href="<?= base_url('category/luxury-mindset') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_luxury')) ?></a></li>
-            <li><a href="<?= base_url('category/couple-collections') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_couple')) ?></a></li>
-            <li><a href="<?= base_url('category/henley-neck-t-shirts') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_henley')) ?></a></li>
+            <?php foreach ($navCategories as $nc): ?>
+                <li>
+                    <a href="<?= base_url('category/' . $nc['slug']) ?>" class="mobile-nav-drawer__link">
+                        <?= e($nc['name']) ?>
+                    </a>
+                </li>
+                <?php if (!empty($nc['subcategories'])): ?>
+                    <?php foreach ($nc['subcategories'] as $sub): ?>
+                        <li style="padding-left:18px;">
+                            <a href="<?= base_url('category/' . $sub['slug']) ?>" class="mobile-nav-drawer__link" style="font-size:13px;color:#8C869B;">
+                                └ <?= e($sub['name']) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            <?php endforeach; ?>
             <li><a href="<?= base_url('track-order') ?>" class="mobile-nav-drawer__link"><?= e(__('track_order')) ?></a></li>
         </ul>
         <div class="mobile-nav-drawer__foot">

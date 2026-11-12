@@ -67,6 +67,8 @@ $router->get('admin/login',        __DIR__ . '/views/pages/admin/login.php');
 $router->get('admin/dashboard',    __DIR__ . '/views/pages/admin/dashboard.php');
 $router->get('admin/orders',       __DIR__ . '/views/pages/admin/orders.php');
 $router->get('admin/products',     __DIR__ . '/views/pages/admin/products.php');
+$router->get('admin/categories',   __DIR__ . '/views/pages/admin/categories.php');
+$router->get('admin/size-charts',  __DIR__ . '/views/pages/admin/size_charts.php');
 $router->get('admin/reviews',      __DIR__ . '/views/pages/admin/reviews.php');
 $router->get('admin/logout',       __DIR__ . '/views/pages/admin/logout.php');
 

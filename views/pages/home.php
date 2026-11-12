@@ -47,8 +47,8 @@ if (!empty($products)) {
     }
 }
 
-// Fetch categories with banner URLs
-$categories = $pdo->query("SELECT name, slug, description, banner_url, icon_or_image_url FROM categories WHERE is_active = 1 ORDER BY sort_order ASC")->fetchAll();
+// Fetch featured active categories strictly ordered by sort_order
+$categories = $pdo->query("SELECT id, name, slug, description, banner_url, icon_or_image_url FROM categories WHERE is_active = 1 AND is_featured = 1 ORDER BY sort_order ASC, id ASC")->fetchAll();
 ?>
 
 <!-- 1. SLEEK AUTOPLAYING HERO SLIDER (VANILLA JS & CSS) -->

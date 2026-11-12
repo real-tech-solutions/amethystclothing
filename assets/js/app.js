@@ -730,6 +730,379 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // =========================================================================
+    // 8. LIVE PREDICTIVE SEARCH AUTOCOMPLETE
+    // =========================================================================
+    const headerSearchInput = document.getElementById('header-search-input');
+    const liveSearchResults = document.getElementById('live-search-results');
+    let liveSearchTimeout = null;
+
+    if (headerSearchInput && liveSearchResults) {
+        headerSearchInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            clearTimeout(liveSearchTimeout);
+
+            if (val.length < 2) {
+                liveSearchResults.innerHTML = '';
+                liveSearchResults.style.display = 'none';
+                return;
+            }
+
+            liveSearchTimeout = setTimeout(() => {
+                fetch(`${baseUrl}/ajax/live_search.php?q=${encodeURIComponent(val)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.success) {
+                            liveSearchResults.style.display = 'none';
+                            return;
+                        }
+
+                        let html = '';
+
+                        // Categories section
+                        if (data.categories && data.categories.length > 0) {
+                            html += `<div style="padding: 10px 14px 6px; background: #FAF9FC; border-bottom: 1px solid #ECE8F2; font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;">COLLECTIONS</div>`;
+                            data.categories.forEach(cat => {
+                                html += `
+                                    <a href="${cat.url}" class="live-search-item" style="padding: 8px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F4F2F8; text-decoration: none; color: var(--text-primary); font-size: 12px; font-weight: 600;">
+                                        <span>${cat.name}</span>
+                                        <span style="font-family: var(--font-mono); font-size: 10px; color: #8C869B;">&rarr;</span>
+                                    </a>
+                                `;
+                            });
+                        }
+
+                        // Products section
+                        if (data.products && data.products.length > 0) {
+                            html += `<div style="padding: 10px 14px 6px; background: #FAF9FC; border-bottom: 1px solid #ECE8F2; font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;">SILHOUETTES (${data.products.length})</div>`;
+                            data.products.forEach(p => {
+                                html += `
+                                    <a href="${p.url}" class="live-search-item" style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #F4F2F8; text-decoration: none; color: var(--text-primary); transition: background 0.15s;">
+                                        <img src="${p.image}" alt="${p.name}" style="width: 44px; height: 52px; object-fit: cover; border: 1px solid #E6E2EE; flex-shrink: 0;">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-family: var(--font-mono); font-size: 9px; color: #8C869B; text-transform: uppercase;">${p.sku} &bull; ${p.thickness_gsm}</div>
+                                            <div style="font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
+                                            <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--brand-deep); margin-top: 2px;">${p.formatted_price}</div>
+                                        </div>
+                                    </a>
+                                `;
+                            });
+
+                            html += `
+                                <div style="padding: 10px 14px; background: #0B0910; text-align: center;">
+                                    <a href="${data.view_all_url}" style="color: #FFFFFF; font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; text-decoration: none; display: block;">
+                                        VIEW ALL SEARCH RESULTS &rarr;
+                                    </a>
+                                </div>
+                            `;
+                        }
+
+                        if ((!data.categories || data.categories.length === 0) && (!data.products || data.products.length === 0)) {
+                            html = `
+                                <div style="padding: 20px; text-align: center; font-size: 12px; color: var(--text-secondary);">
+                                    No silhouettes matching "<strong>${val}</strong>"
+                                </div>
+                            `;
+                        }
+
+                        liveSearchResults.innerHTML = html;
+                        liveSearchResults.style.display = 'block';
+                    })
+                    .catch(err => {
+                        console.error('Live search error:', err);
+                        liveSearchResults.style.display = 'none';
+                    });
+            }, 250);
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!liveSearchResults.contains(e.target) && e.target !== headerSearchInput) {
+                liveSearchResults.style.display = 'none';
+            }
+        });
+    }
+
+    // =========================================================================
+    // 9. STOREFRONT MULTI-FACET FILTER ENGINE
+    // =========================================================================
+    const catalogSidebar = document.getElementById('catalog-sidebar');
+    const catalogGrid = document.getElementById('catalog-product-grid');
+
+    if (catalogGrid) {
+        const filterSearchInput = document.getElementById('filter-search-input');
+        const filterMinPrice = document.getElementById('filter-min-price');
+        const filterMaxPrice = document.getElementById('filter-max-price');
+        const filterInStock = document.getElementById('filter-instock-checkbox');
+        const catalogSortSelect = document.getElementById('catalog-sort-select');
+        const activeFilterTagsContainer = document.getElementById('active-filter-tags');
+        const catalogCountBadge = document.getElementById('catalog-count-badge');
+        const lockedCategoryInput = document.getElementById('filter-locked-category');
+        const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
+        const clearAllBtn = document.getElementById('catalog-clear-all');
+
+        let filterTimeout = null;
+
+        // Mobile toggle
+        if (mobileFilterToggle && catalogSidebar) {
+            mobileFilterToggle.style.display = 'inline-block';
+            mobileFilterToggle.addEventListener('click', () => {
+                catalogSidebar.classList.toggle('is-open');
+            });
+        }
+
+        const getSelectedSizes = () => {
+            const activeSizeBtns = document.querySelectorAll('.size-filter-btn.is-active');
+            return Array.from(activeSizeBtns).map(btn => btn.dataset.size).filter(Boolean);
+        };
+
+        const getSelectedColors = () => {
+            const activeColorBtns = document.querySelectorAll('.color-filter-btn.is-active');
+            return Array.from(activeColorBtns).map(btn => btn.dataset.colorName || btn.dataset.colorHex).filter(Boolean);
+        };
+
+        const getActiveCategory = () => {
+            if (lockedCategoryInput && lockedCategoryInput.value) {
+                return lockedCategoryInput.value;
+            }
+            const activeCatBtn = document.querySelector('.filter-cat-btn.is-active');
+            return activeCatBtn ? activeCatBtn.dataset.category : '';
+        };
+
+        const renderActiveTags = (state) => {
+            if (!activeFilterTagsContainer) return;
+            let tags = [];
+
+            if (state.q) {
+                tags.push(`<span class="active-tag">Search: "${state.q}" <button type="button" data-tag-type="q">&times;</button></span>`);
+            }
+            if (state.category && state.category !== 'all' && (!lockedCategoryInput || !lockedCategoryInput.value)) {
+                tags.push(`<span class="active-tag">Category: ${state.category} <button type="button" data-tag-type="category">&times;</button></span>`);
+            }
+            if (state.min_price || state.max_price) {
+                const rangeStr = (state.min_price ? state.min_price : '0') + ' - ' + (state.max_price ? state.max_price : 'Any') + ' LKR';
+                tags.push(`<span class="active-tag">Price: ${rangeStr} <button type="button" data-tag-type="price">&times;</button></span>`);
+            }
+            if (state.sizes && state.sizes.length > 0) {
+                state.sizes.forEach(s => {
+                    tags.push(`<span class="active-tag">Size: ${s} <button type="button" data-tag-type="size" data-val="${s}">&times;</button></span>`);
+                });
+            }
+            if (state.colors && state.colors.length > 0) {
+                state.colors.forEach(c => {
+                    tags.push(`<span class="active-tag">Color: ${c} <button type="button" data-tag-type="color" data-val="${c}">&times;</button></span>`);
+                });
+            }
+            if (state.in_stock) {
+                tags.push(`<span class="active-tag">In-Stock Only <button type="button" data-tag-type="in_stock">&times;</button></span>`);
+            }
+
+            activeFilterTagsContainer.innerHTML = tags.join('');
+
+            // Wire remove tag clicks
+            activeFilterTagsContainer.querySelectorAll('button[data-tag-type]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.dataset.tagType;
+                    const val = btn.dataset.val;
+
+                    if (type === 'q') {
+                        if (filterSearchInput) filterSearchInput.value = '';
+                    } else if (type === 'category') {
+                        document.querySelectorAll('.filter-cat-btn').forEach(b => {
+                            b.classList.toggle('is-active', b.dataset.category === 'all');
+                        });
+                    } else if (type === 'price') {
+                        if (filterMinPrice) filterMinPrice.value = '';
+                        if (filterMaxPrice) filterMaxPrice.value = '';
+                        document.querySelectorAll('.price-tier-btn').forEach(b => b.classList.remove('is-active'));
+                    } else if (type === 'size') {
+                        const sBtn = document.querySelector(`.size-filter-btn[data-size="${val}"]`);
+                        if (sBtn) sBtn.classList.remove('is-active');
+                    } else if (type === 'color') {
+                        const cBtn = document.querySelector(`.color-filter-btn[data-color-name="${val}"], .color-filter-btn[data-color-hex="${val}"]`);
+                        if (cBtn) cBtn.classList.remove('is-active');
+                    } else if (type === 'in_stock') {
+                        if (filterInStock) filterInStock.checked = false;
+                    }
+
+                    triggerFilter();
+                });
+            });
+        };
+
+        const triggerFilter = () => {
+            const q = filterSearchInput ? filterSearchInput.value.trim() : '';
+            const category = getActiveCategory();
+            const min_price = filterMinPrice ? filterMinPrice.value.trim() : '';
+            const max_price = filterMaxPrice ? filterMaxPrice.value.trim() : '';
+            const sizes = getSelectedSizes();
+            const colors = getSelectedColors();
+            const in_stock = filterInStock && filterInStock.checked ? 1 : 0;
+            const sort = catalogSortSelect ? catalogSortSelect.value : 'featured';
+
+            const filterState = { q, category, min_price, max_price, sizes, colors, in_stock, sort };
+            renderActiveTags(filterState);
+
+            // Update browser URL query params via history.replaceState
+            const params = new URLSearchParams();
+            if (q) params.set('q', q);
+            if (category && category !== 'all' && (!lockedCategoryInput || !lockedCategoryInput.value)) params.set('category', category);
+            if (min_price) params.set('min_price', min_price);
+            if (max_price) params.set('max_price', max_price);
+            if (sizes.length > 0) params.set('sizes', sizes.join(','));
+            if (colors.length > 0) params.set('colors', colors.join(','));
+            if (in_stock) params.set('in_stock', '1');
+            if (sort && sort !== 'featured') params.set('sort', sort);
+
+            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.replaceState({}, '', newUrl);
+
+            // Add loading opacity
+            catalogGrid.style.opacity = '0.5';
+
+            fetch(`${baseUrl}/ajax/filter_products.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    q,
+                    category,
+                    min_price,
+                    max_price,
+                    sizes: sizes.join(','),
+                    colors: colors.join(','),
+                    in_stock,
+                    sort
+                }).toString()
+            })
+            .then(res => res.json())
+            .then(data => {
+                catalogGrid.style.opacity = '1';
+                if (data.success) {
+                    catalogGrid.innerHTML = data.html;
+                    if (catalogCountBadge) {
+                        catalogCountBadge.textContent = `${data.count} ITEMS FOUND`;
+                    }
+
+                    // Reset button inside empty state
+                    const resetBtnInner = document.getElementById('btn-reset-filters') || document.getElementById('btn-reset-filters-inner');
+                    if (resetBtnInner) {
+                        resetBtnInner.addEventListener('click', resetAllFilters);
+                    }
+                }
+            })
+            .catch(err => {
+                catalogGrid.style.opacity = '1';
+                console.error('Filtering failed:', err);
+            });
+        };
+
+        const resetAllFilters = () => {
+            if (filterSearchInput) filterSearchInput.value = '';
+            if (filterMinPrice) filterMinPrice.value = '';
+            if (filterMaxPrice) filterMaxPrice.value = '';
+            if (filterInStock) filterInStock.checked = false;
+            if (catalogSortSelect) catalogSortSelect.value = 'featured';
+
+            document.querySelectorAll('.filter-cat-btn').forEach(btn => {
+                btn.classList.toggle('is-active', btn.dataset.category === 'all');
+            });
+            document.querySelectorAll('.size-filter-btn').forEach(btn => btn.classList.remove('is-active'));
+            document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('is-active'));
+            document.querySelectorAll('.price-tier-btn').forEach(btn => btn.classList.remove('is-active'));
+
+            triggerFilter();
+        };
+
+        if (clearAllBtn) clearAllBtn.addEventListener('click', resetAllFilters);
+
+        // Keyword Search Input debounced
+        if (filterSearchInput) {
+            filterSearchInput.addEventListener('input', () => {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(triggerFilter, 300);
+            });
+        }
+
+        // Min/Max price inputs debounced
+        if (filterMinPrice) {
+            filterMinPrice.addEventListener('input', () => {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(triggerFilter, 400);
+            });
+        }
+        if (filterMaxPrice) {
+            filterMaxPrice.addEventListener('input', () => {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(triggerFilter, 400);
+            });
+        }
+
+        // Price Tier Buttons
+        document.querySelectorAll('.price-tier-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const isCurrentlyActive = btn.classList.contains('is-active');
+                document.querySelectorAll('.price-tier-btn').forEach(b => b.classList.remove('is-active'));
+
+                if (!isCurrentlyActive) {
+                    btn.classList.add('is-active');
+                    if (filterMinPrice) filterMinPrice.value = btn.dataset.min || '';
+                    if (filterMaxPrice) filterMaxPrice.value = btn.dataset.max || '';
+                } else {
+                    if (filterMinPrice) filterMinPrice.value = '';
+                    if (filterMaxPrice) filterMaxPrice.value = '';
+                }
+                triggerFilter();
+            });
+        });
+
+        // Category Buttons
+        document.querySelectorAll('.filter-cat-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-cat-btn').forEach(b => b.classList.remove('is-active'));
+                btn.classList.add('is-active');
+                triggerFilter();
+            });
+        });
+
+        // Size Pills (multi-select toggle)
+        document.querySelectorAll('.size-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('is-active');
+                triggerFilter();
+            });
+        });
+
+        // Color Swatches (multi-select toggle)
+        document.querySelectorAll('.color-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('is-active');
+                triggerFilter();
+            });
+        });
+
+        // In-Stock Checkbox
+        if (filterInStock) {
+            filterInStock.addEventListener('change', triggerFilter);
+        }
+
+        // Sort Select
+        if (catalogSortSelect) {
+            catalogSortSelect.addEventListener('change', triggerFilter);
+        }
+
+        // Initial tag render on page load
+        renderActiveTags({
+            q: filterSearchInput ? filterSearchInput.value.trim() : '',
+            category: getActiveCategory(),
+            min_price: filterMinPrice ? filterMinPrice.value.trim() : '',
+            max_price: filterMaxPrice ? filterMaxPrice.value.trim() : '',
+            sizes: getSelectedSizes(),
+            colors: getSelectedColors(),
+            in_stock: filterInStock && filterInStock.checked ? 1 : 0,
+            sort: catalogSortSelect ? catalogSortSelect.value : 'featured'
+        });
+    }
+
     // Keyboard ESC closes active modals/drawers
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -741,6 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (searchDrawer) searchDrawer.classList.remove('is-open');
             if (floatingHub) floatingHub.classList.remove('is-active');
+            if (catalogSidebar) catalogSidebar.classList.remove('is-open');
             document.body.style.overflow = '';
         }
     });

@@ -23,6 +23,5 @@ logs/
 /vendor/
 composer.lock
 
-# Node (if used later)
-/node_modules/
-package-lock.json
+# Scratch scripts
+scratch/
