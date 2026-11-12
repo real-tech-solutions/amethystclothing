@@ -207,7 +207,7 @@ $primaryImage = !empty($mediaItems[0]['url'])
                             </button>
                         </div>
                         <a href="<?= base_url('checkout') ?>" class="btn btn--outline btn--full" id="buy-now-btn" style="margin-top: 10px;">
-                            <?= e(__('buy_now_guest')) ?>
+                            <?= is_customer_logged_in() ? e(__('buy_now')) : e(__('buy_now_guest')) ?>
                         </a>
                     </div>
 
@@ -219,22 +219,6 @@ $primaryImage = !empty($mediaItems[0]['url'])
                             <line x1="12" y1="17" x2="12.01" y2="17"></line>
                         </svg>
                         <span id="stock-warning-text"></span>
-                    </div>
-
-                    <!-- Value Highlights -->
-                    <div class="product-perks-box">
-                        <div class="perk-item">
-                            <span class="perk-dot"></span>
-                            <span><strong>Islandwide Delivery:</strong> 1-3 Days Colombo, 3-5 Days Outstation</span>
-                        </div>
-                        <div class="perk-item">
-                            <span class="perk-dot"></span>
-                            <span><strong>14-Day Size Exchange:</strong> Hassle-free doorstep exchange service</span>
-                        </div>
-                        <div class="perk-item">
-                            <span class="perk-dot"></span>
-                            <span><strong>Payment:</strong> Cash on Delivery, Visa/Mastercard, Koko / Mintpay</span>
-                        </div>
                     </div>
 
                     <!-- BEAST-Style Specifications Tech Table -->
@@ -256,164 +240,260 @@ $primaryImage = !empty($mediaItems[0]['url'])
                 </div>
             </div>
 
-            <!-- Customer Reviews & Social Proof Section -->
-            <div class="product-reviews-container" style="margin-top: 60px; padding-top: 50px; border-top: 1px solid var(--border-crisp);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 32px; flex-wrap:wrap; gap:16px;">
-                    <div>
-                        <span style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em; color: var(--brand-deep); text-transform: uppercase;">
-                            VERIFIED BUYER FEEDBACK // SOCIAL PROOF
-                        </span>
-                        <h2 style="font-size: 24px; font-weight: 800; text-transform: uppercase; margin: 4px 0 0; letter-spacing: -0.01em;">
-                            CUSTOMER REVIEWS (<?= count($reviews) ?>)
-                        </h2>
-                    </div>
-
-                    <?php 
-                        $avgRating = $product['average_rating'] ?: 5.0;
-                    ?>
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="color: #F59E0B; font-size: 18px; letter-spacing: 2px;">
-                            ★★★★★
-                        </div>
-                        <span style="font-family: var(--font-mono); font-weight: 700; font-size: 15px;">
-                            <?= number_format((float)$avgRating, 1) ?> / 5.0
-                        </span>
-                    </div>
+            <!-- Interactive Product Tabs Section: 1. SIZE & FIT GUIDE | 2. CUSTOMER REVIEWS -->
+            <div class="product-tabs-wrapper" id="product-tabs-wrapper" style="margin-top: 50px; padding-top: 36px; border-top: 1px solid var(--border-crisp);">
+                <!-- Tab Navigation Buttons -->
+                <div class="product-tabs-nav" style="display:flex; border-bottom: 2px solid var(--border-crisp); margin-bottom: 32px; gap: 4px;">
+                    <button type="button" class="product-tab-btn is-active" data-tab="tab-size-guide" 
+                            style="padding: 12px 24px; font-family: var(--font-display); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid var(--brand-deep); margin-bottom: -2px; color: var(--text-primary); transition: all 0.15s;">
+                        📏 SIZE &amp; FIT GUIDE
+                    </button>
+                    <button type="button" class="product-tab-btn" data-tab="tab-reviews" 
+                            style="padding: 12px 24px; font-family: var(--font-display); font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; color: var(--text-secondary); transition: all 0.15s;">
+                        ★ CUSTOMER REVIEWS (<?= count($reviews) ?>)
+                    </button>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1.6fr 1.2fr; gap: 48px; align-items:start;">
-                    <!-- Reviews List -->
-                    <div>
-                        <?php if (empty($reviews)): ?>
-                            <div style="padding: 40px; background: #FFFFFF; border: 1px solid var(--border-crisp); text-align: center;">
-                                <div style="font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">BE THE FIRST TO REVIEW</div>
-                                <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
-                                    Own this silhouette? Leave an honest fit and fabric review to help the Amethyst community.
-                                </p>
-                            </div>
-                        <?php else: ?>
-                            <div style="display:flex; flex-direction:column; gap: 20px;">
-                                <?php foreach ($reviews as $rev): ?>
-                                    <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 24px;">
-                                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 10px;">
-                                            <div>
-                                                <div style="color: #F59E0B; font-size: 14px; letter-spacing: 1px; margin-bottom: 4px;">
-                                                    <?= str_repeat('★', (int)$rev['rating']) ?><?= str_repeat('☆', 5 - (int)$rev['rating']) ?>
-                                                </div>
-                                                <h4 style="font-size: 15px; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.02em;">
-                                                    <?= e($rev['review_title']) ?>
-                                                </h4>
-                                            </div>
-                                            <span style="font-family: var(--font-mono); font-size: 11px; color: #8C869B;">
-                                                <?= date('M d, Y', strtotime($rev['created_at'])) ?>
-                                            </span>
-                                        </div>
+                <!-- Tab 1: Size & Fit Guide Pane -->
+                <div class="product-tab-pane is-active" id="tab-size-guide">
+                    <?php if ($sizeChart && !empty($sizeChart['measurements'])): ?>
+                        <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 32px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:12px;">
+                                <div>
+                                    <span style="font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700;">
+                                        GARMENT SPECIFICATION // FIT PROFILE
+                                    </span>
+                                    <h3 style="margin: 4px 0 0; font-family: var(--font-display); font-size: 18px; text-transform: uppercase;"><?= e($sizeChart['title']) ?></h3>
+                                </div>
 
-                                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px;">
-                                            <?= nl2br(e($rev['review_text'])) ?>
-                                        </p>
-
-                                        <div style="display:flex; align-items:center; gap: 12px; font-size: 12px;">
-                                            <strong style="color: var(--text-primary);"><?= e($rev['customer_name'] ?: 'Verified Customer') ?></strong>
-                                            
-                                            <?php if (!empty($rev['is_verified_buyer'])): ?>
-                                                <span style="font-family: var(--font-mono); font-size: 10px; color: #065F46; background: #D1FAE5; padding: 2px 6px; letter-spacing: 0.05em;">
-                                                    &check; VERIFIED BUYER
-                                                </span>
-                                            <?php endif; ?>
-
-                                            <?php if (!empty($rev['purchased_size'])): ?>
-                                                <span style="font-family: var(--font-mono); font-size: 10px; color: #716B80; background: #F4F2F8; padding: 2px 6px;">
-                                                    SIZE: <?= e($rev['purchased_size']) ?>
-                                                </span>
-                                            <?php endif; ?>
-                                        </div>
+                                <div style="display:flex; align-items:center; gap:16px;">
+                                    <div style="display:inline-flex; align-items:center; gap:8px;">
+                                        <span style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: #716B80;">FIT TYPE:</span>
+                                        <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; background: var(--brand-deep); color: #FFFFFF; padding: 3px 8px; text-transform: uppercase;">
+                                            <?= e($sizeChart['fit_type']) ?>
+                                        </span>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
 
-                    <!-- Write a Review Form -->
-                    <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 32px;">
-                        <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 0 0 6px; letter-spacing: 0.04em;">
-                            WRITE A VERIFIED REVIEW
-                        </h3>
-                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">
-                            Share your feedback on the 240GSM cotton weight, silhouette drop, and wash performance.
-                        </p>
-
-                        <div id="review-feedback" style="display:none; padding:12px; margin-bottom:16px; font-size:13px; line-height:1.4;"></div>
-
-                        <form id="product-review-form">
-                            <input type="hidden" name="product_id" value="<?= (int)$product['id'] ?>">
-
-                            <!-- Rating Picker -->
-                            <div style="margin-bottom: 16px;">
-                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
-                                    YOUR RATING <span style="color:#EF4444;">*</span>
-                                </label>
-                                <div style="display:flex; gap:8px;" id="star-picker">
-                                    <?php for ($s = 1; $s <= 5; $s++): ?>
-                                        <label style="cursor:pointer; display:flex; align-items:center; gap:2px; font-size:13px; padding:6px 10px; border:1px solid var(--border-crisp);">
-                                            <input type="radio" name="rating" value="<?= $s ?>" <?= $s === 5 ? 'checked' : '' ?> style="margin:0;">
-                                            <span><?= $s ?> ★</span>
-                                        </label>
-                                    <?php endfor; ?>
+                                    <!-- Unit Switcher (Inches / CM) -->
+                                    <div style="display:flex; align-items:center; gap:2px; border: 1px solid var(--border-crisp); padding: 2px; background: #FAF9FC;">
+                                        <button type="button" id="unit-inch-btn" class="unit-toggle-btn is-active" style="padding: 5px 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: none; cursor: pointer; background: var(--brand-deep); color: #FFFFFF;">
+                                            INCHES
+                                        </button>
+                                        <button type="button" id="unit-cm-btn" class="unit-toggle-btn" style="padding: 5px 12px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: none; cursor: pointer; background: transparent; color: var(--text-primary);">
+                                            CM
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
-                                <div>
+                            <!-- Matrix Table -->
+                            <div style="overflow-x: auto; border: 1px solid var(--border-crisp); margin-bottom: 20px;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                                    <thead>
+                                        <tr style="background: #0B0910; color: #FFFFFF; font-family: var(--font-mono); text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">
+                                            <th style="padding: 12px 16px; border-right: 1px solid #23202E;">SIZE</th>
+                                            <th style="padding: 12px 16px; border-right: 1px solid #23202E;">CHEST (<span class="unit-label">IN</span>)</th>
+                                            <th style="padding: 12px 16px; border-right: 1px solid #23202E;">LENGTH (<span class="unit-label">IN</span>)</th>
+                                            <th style="padding: 12px 16px;">SHOULDER (<span class="unit-label">IN</span>)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($sizeChart['measurements'] as $row): 
+                                            $size = $row['size'] ?? '';
+                                            $chest = (float)($row['chest_inch'] ?? $row['chest'] ?? 0);
+                                            $len = (float)($row['length_inch'] ?? $row['length'] ?? 0);
+                                            $shld = (float)($row['shoulder_inch'] ?? $row['shoulder'] ?? 0);
+                                        ?>
+                                            <tr style="border-bottom: 1px solid var(--border-crisp); font-family: var(--font-mono);">
+                                                <td style="padding: 12px 16px; font-weight: 800; background: #FAF9FC; border-right: 1px solid var(--border-crisp);"><?= e($size) ?></td>
+                                                <td style="padding: 12px 16px; border-right: 1px solid var(--border-crisp);" class="val-chest" data-val-inch="<?= $chest ?>"><?= $chest ?> in</td>
+                                                <td style="padding: 12px 16px; border-right: 1px solid var(--border-crisp);" class="val-length" data-val-inch="<?= $len ?>"><?= $len ?> in</td>
+                                                <td style="padding: 12px 16px;" class="val-shoulder" data-val-inch="<?= $shld ?>"><?= $shld ?> in</td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <?php if (!empty($sizeChart['notes'])): ?>
+                                <div style="padding: 14px 16px; background: #FAF9FC; border-left: 3px solid var(--brand-deep); font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                                    <strong style="color: var(--text-primary); text-transform: uppercase; font-family: var(--font-mono); font-size: 10px; display: block; margin-bottom: 4px;">FIT RECOMMENDATION &amp; SIZING NOTES:</strong>
+                                    <?= nl2br(e($sizeChart['notes'])) ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <div style="font-size: 11px; color: #8C869B; font-family: var(--font-mono); line-height: 1.6;">
+                                &bull; Chest: Measure around fullest part of chest, keeping the tape horizontal.<br>
+                                &bull; Length: Measure from highest point of shoulder seam straight down to bottom hem.<br>
+                                &bull; Shoulder: Measure from shoulder tip across back to opposite shoulder tip.
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div style="padding: 36px; background:#FFF; border:1px solid var(--border-crisp); text-align:center;">
+                            <p style="font-size:13px; color:var(--text-secondary); margin:0;">Standard true-to-size Sri Lankan streetwear fit. Contact WhatsApp Concierge for custom measurement checks.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Tab 2: Customer Reviews Pane -->
+                <div class="product-tab-pane" id="tab-reviews" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px; flex-wrap:wrap; gap:16px;">
+                        <div>
+                            <span style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.15em; color: var(--brand-deep); text-transform: uppercase;">
+                                VERIFIED BUYER FEEDBACK // SOCIAL PROOF
+                            </span>
+                            <h2 style="font-size: 22px; font-weight: 800; text-transform: uppercase; margin: 4px 0 0; letter-spacing: -0.01em;">
+                                CUSTOMER REVIEWS (<?= count($reviews) ?>)
+                            </h2>
+                        </div>
+
+                        <?php 
+                            $avgRating = $product['average_rating'] ?: 5.0;
+                        ?>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="color: #F59E0B; font-size: 18px; letter-spacing: 2px;">
+                                ★★★★★
+                            </div>
+                            <span style="font-family: var(--font-mono); font-weight: 700; font-size: 15px;">
+                                <?= number_format((float)$avgRating, 1) ?> / 5.0
+                            </span>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1.5fr 1.2fr; gap: 36px; align-items:start;" class="reviews-tab-grid">
+                        <!-- Reviews List -->
+                        <div>
+                            <?php if (empty($reviews)): ?>
+                                <div style="padding: 40px; background: #FFFFFF; border: 1px solid var(--border-crisp); text-align: center;">
+                                    <div style="font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;">BE THE FIRST TO REVIEW</div>
+                                    <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+                                        Own this silhouette? Leave an honest fit and fabric review to help the Amethyst community.
+                                    </p>
+                                </div>
+                            <?php else: ?>
+                                <div style="display:flex; flex-direction:column; gap: 16px;">
+                                    <?php foreach ($reviews as $rev): ?>
+                                        <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 22px;">
+                                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
+                                                <div>
+                                                    <div style="color: #F59E0B; font-size: 13px; letter-spacing: 1px; margin-bottom: 4px;">
+                                                        <?= str_repeat('★', (int)$rev['rating']) ?><?= str_repeat('☆', 5 - (int)$rev['rating']) ?>
+                                                    </div>
+                                                    <h4 style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin: 0; letter-spacing: 0.02em;">
+                                                        <?= e($rev['review_title']) ?>
+                                                    </h4>
+                                                </div>
+                                                <span style="font-family: var(--font-mono); font-size: 11px; color: #8C869B;">
+                                                    <?= date('M d, Y', strtotime($rev['created_at'])) ?>
+                                                </span>
+                                            </div>
+
+                                            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                                                <?= nl2br(e($rev['review_text'])) ?>
+                                            </p>
+
+                                            <div style="display:flex; align-items:center; gap: 12px; font-size: 12px;">
+                                                <strong style="color: var(--text-primary);"><?= e($rev['customer_name'] ?: 'Verified Customer') ?></strong>
+                                                
+                                                <?php if (!empty($rev['is_verified_buyer'])): ?>
+                                                    <span style="font-family: var(--font-mono); font-size: 10px; color: #065F46; background: #D1FAE5; padding: 2px 6px; letter-spacing: 0.05em;">
+                                                        &check; VERIFIED BUYER
+                                                    </span>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($rev['purchased_size'])): ?>
+                                                    <span style="font-family: var(--font-mono); font-size: 10px; color: #716B80; background: #F4F2F8; padding: 2px 6px;">
+                                                        SIZE: <?= e($rev['purchased_size']) ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Write a Review Form -->
+                        <div style="background: #FFFFFF; border: 1px solid var(--border-crisp); padding: 28px;">
+                            <h3 style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 0 0 6px; letter-spacing: 0.04em;">
+                                WRITE A VERIFIED REVIEW
+                            </h3>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 18px;">
+                                Share your feedback on the 240GSM cotton weight, silhouette drop, and wash performance.
+                            </p>
+
+                            <div id="review-feedback" style="display:none; padding:12px; margin-bottom:16px; font-size:13px; line-height:1.4;"></div>
+
+                            <form id="product-review-form">
+                                <input type="hidden" name="product_id" value="<?= (int)$product['id'] ?>">
+
+                                <!-- Rating Picker -->
+                                <div style="margin-bottom: 16px;">
                                     <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
-                                        YOUR NAME <span style="color:#EF4444;">*</span>
+                                        YOUR RATING <span style="color:#EF4444;">*</span>
                                     </label>
-                                    <input type="text" name="reviewer_name" value="<?= e(customer_user()['full_name'] ?? '') ?>" placeholder="e.g. Shanuka K." required
+                                    <div style="display:flex; gap:8px;" id="star-picker">
+                                        <?php for ($s = 1; $s <= 5; $s++): ?>
+                                            <label style="cursor:pointer; display:flex; align-items:center; gap:2px; font-size:13px; padding:6px 10px; border:1px solid var(--border-crisp);">
+                                                <input type="radio" name="rating" value="<?= $s ?>" <?= $s === 5 ? 'checked' : '' ?> style="margin:0;">
+                                                <span><?= $s ?> ★</span>
+                                            </label>
+                                        <?php endfor; ?>
+                                    </div>
+                                </div>
+
+                                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+                                    <div>
+                                        <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                            YOUR NAME <span style="color:#EF4444;">*</span>
+                                        </label>
+                                        <input type="text" name="reviewer_name" value="<?= e(customer_user()['full_name'] ?? '') ?>" placeholder="e.g. Shanuka K." required
+                                               style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
+                                    </div>
+
+                                    <div>
+                                        <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                            PURCHASED SIZE
+                                        </label>
+                                        <select name="purchased_size" style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; background:#FFF; box-sizing:border-box;">
+                                            <option value="S">Small (S)</option>
+                                            <option value="M" selected>Medium (M)</option>
+                                            <option value="L">Large (L)</option>
+                                            <option value="XL">X-Large (XL)</option>
+                                            <option value="XXL">2X-Large (XXL)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom:14px;">
+                                    <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                        MOBILE NUMBER (FOR BUYER VERIFICATION)
+                                    </label>
+                                    <input type="tel" name="reviewer_phone" value="<?= e(customer_user()['phone'] ?? '') ?>" placeholder="07XXXXXXXX"
                                            style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
                                 </div>
 
-                                <div>
+                                <div style="margin-bottom:14px;">
                                     <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
-                                        PURCHASED SIZE
+                                        REVIEW HEADLINE <span style="color:#EF4444;">*</span>
                                     </label>
-                                    <select name="purchased_size" style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; background:#FFF; box-sizing:border-box;">
-                                        <option value="S">Small (S)</option>
-                                        <option value="M" selected>Medium (M)</option>
-                                        <option value="L">Large (L)</option>
-                                        <option value="XL">X-Large (XL)</option>
-                                        <option value="XXL">2X-Large (XXL)</option>
-                                    </select>
+                                    <input type="text" name="review_title" placeholder="e.g. Best drop shoulder fit in Sri Lanka" required
+                                           style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
                                 </div>
-                            </div>
 
-                            <div style="margin-bottom:14px;">
-                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
-                                    MOBILE NUMBER (FOR BUYER VERIFICATION)
-                                </label>
-                                <input type="tel" name="reviewer_phone" value="<?= e(customer_user()['phone'] ?? '') ?>" placeholder="07XXXXXXXX"
-                                       style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
-                            </div>
+                                <div style="margin-bottom:18px;">
+                                    <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
+                                        DETAILED REVIEW <span style="color:#EF4444;">*</span>
+                                    </label>
+                                    <textarea name="review_text" rows="4" placeholder="How is the collar tightness, heavy cotton feel, and print longevity?" required
+                                              style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;"></textarea>
+                                </div>
 
-                            <div style="margin-bottom:14px;">
-                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
-                                    REVIEW HEADLINE <span style="color:#EF4444;">*</span>
-                                </label>
-                                <input type="text" name="review_title" placeholder="e.g. Best drop shoulder fit in Sri Lanka" required
-                                       style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;">
-                            </div>
-
-                            <div style="margin-bottom:18px;">
-                                <label style="display:block; font-family:var(--font-mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px;">
-                                    DETAILED REVIEW <span style="color:#EF4444;">*</span>
-                                </label>
-                                <textarea name="review_text" rows="4" placeholder="How is the collar tightness, heavy cotton feel, and print longevity?" required
-                                          style="width:100%; padding:10px; border:1px solid var(--border-crisp); font-size:13px; border-radius:0; box-sizing:border-box;"></textarea>
-                            </div>
-
-                            <button type="submit" id="btn-submit-review" class="btn btn--brand btn--full" style="padding:12px; font-size:12px; letter-spacing:0.1em; border-radius:0;">
-                                SUBMIT REVIEW FOR VERIFICATION &rarr;
-                            </button>
-                        </form>
+                                <button type="submit" id="btn-submit-review" class="btn btn--brand btn--full" style="padding:12px; font-size:12px; letter-spacing:0.1em; border-radius:0;">
+                                    SUBMIT REVIEW FOR VERIFICATION &rarr;
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -514,46 +594,47 @@ $primaryImage = !empty($mediaItems[0]['url'])
                     });
                 }
 
-                // 3. Size Guide Modal & Unit Conversion Engine
-                const openSizeGuideBtn = document.getElementById('btn-open-size-guide');
-                const closeSizeGuideBtn = document.getElementById('btn-close-size-guide');
-                const sizeGuideModal = document.getElementById('size-guide-modal');
-                const sizeGuideOverlay = document.getElementById('size-guide-overlay');
-                const unitInchBtn = document.getElementById('unit-inch-btn');
-                const unitCmBtn = document.getElementById('unit-cm-btn');
-
-                function toggleSizeGuideModal(show) {
-                    if (!sizeGuideModal) return;
-                    if (show) {
-                        sizeGuideModal.classList.add('is-open');
-                        document.body.style.overflow = 'hidden';
-                    } else {
-                        sizeGuideModal.classList.remove('is-open');
-                        document.body.style.overflow = '';
-                    }
-                }
-
-                if (openSizeGuideBtn) {
-                    openSizeGuideBtn.addEventListener('click', () => toggleSizeGuideModal(true));
-                }
-                if (closeSizeGuideBtn) {
-                    closeSizeGuideBtn.addEventListener('click', () => toggleSizeGuideModal(false));
-                }
-                if (sizeGuideOverlay) {
-                    sizeGuideOverlay.addEventListener('click', () => toggleSizeGuideModal(false));
-                }
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && sizeGuideModal && sizeGuideModal.classList.contains('is-open')) {
-                        toggleSizeGuideModal(false);
-                    }
+                // 3. Product Tab Navigation & Unit Conversion Engine
+                const tabBtns = document.querySelectorAll('.product-tab-btn');
+                const tabPanes = document.querySelectorAll('.product-tab-pane');
+                tabBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const targetId = this.dataset.tab;
+                        tabBtns.forEach(b => {
+                            b.classList.remove('is-active');
+                            b.style.color = 'var(--text-secondary)';
+                            b.style.borderBottomColor = 'transparent';
+                        });
+                        tabPanes.forEach(p => p.style.display = 'none');
+                        this.classList.add('is-active');
+                        this.style.color = 'var(--text-primary)';
+                        this.style.borderBottomColor = 'var(--brand-deep)';
+                        const targetPane = document.getElementById(targetId);
+                        if (targetPane) targetPane.style.display = 'block';
+                    });
                 });
 
+                const openSizeGuideBtn = document.getElementById('btn-open-size-guide');
+                if (openSizeGuideBtn) {
+                    openSizeGuideBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const sizeTabBtn = document.querySelector('.product-tab-btn[data-tab="tab-size-guide"]');
+                        if (sizeTabBtn) sizeTabBtn.click();
+                        const tabsWrapper = document.getElementById('product-tabs-wrapper');
+                        if (tabsWrapper) tabsWrapper.scrollIntoView({ behavior: 'smooth' });
+                    });
+                }
+
+                const unitInchBtn = document.getElementById('unit-inch-btn');
+                const unitCmBtn = document.getElementById('unit-cm-btn');
+                const tabSizeGuide = document.getElementById('tab-size-guide');
+
                 function setMeasurementUnit(unit) {
-                    if (!sizeGuideModal) return;
-                    const unitLabels = sizeGuideModal.querySelectorAll('.unit-label');
-                    const chestCells = sizeGuideModal.querySelectorAll('.val-chest');
-                    const lengthCells = sizeGuideModal.querySelectorAll('.val-length');
-                    const shoulderCells = sizeGuideModal.querySelectorAll('.val-shoulder');
+                    if (!tabSizeGuide) return;
+                    const unitLabels = tabSizeGuide.querySelectorAll('.unit-label');
+                    const chestCells = tabSizeGuide.querySelectorAll('.val-chest');
+                    const lengthCells = tabSizeGuide.querySelectorAll('.val-length');
+                    const shoulderCells = tabSizeGuide.querySelectorAll('.val-shoulder');
 
                     if (unit === 'cm') {
                         if (unitCmBtn) {
@@ -609,86 +690,6 @@ $primaryImage = !empty($mediaItems[0]['url'])
                     unitCmBtn.addEventListener('click', () => setMeasurementUnit('cm'));
                 }
             </script>
-
-            <?php if ($sizeChart && !empty($sizeChart['measurements'])): ?>
-                <!-- Interactive Size Guide Modal -->
-                <div class="modal" id="size-guide-modal" aria-hidden="true">
-                    <div class="modal__overlay" id="size-guide-overlay"></div>
-                    <div class="modal__panel" style="width: 580px; max-width: 95vw; max-height: 90vh; overflow-y: auto;">
-                        <div class="modal__head" style="background: #FAF9FC; border-bottom: 1px solid var(--border-crisp);">
-                            <div>
-                                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--brand-deep); letter-spacing: 0.12em; text-transform: uppercase;">
-                                    GARMENT SPECIFICATION // FIT GUIDE
-                                </span>
-                                <h3 class="modal__title" style="margin: 4px 0 0; font-size: 16px;"><?= e($sizeChart['title']) ?></h3>
-                            </div>
-                            <button type="button" class="modal__close" id="btn-close-size-guide" aria-label="Close" style="background:none; border:none; cursor:pointer; font-size:24px;">&times;</button>
-                        </div>
-                        <div class="modal__body" style="padding: 24px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; flex-wrap:wrap; gap:12px;">
-                                <div style="display:inline-flex; align-items:center; gap:8px;">
-                                    <span style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: #716B80;">FIT PROFILE:</span>
-                                    <span style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; background: var(--brand-deep); color: #FFFFFF; padding: 2px 8px; text-transform: uppercase;">
-                                        <?= e($sizeChart['fit_type']) ?>
-                                    </span>
-                                </div>
-                                
-                                <!-- Unit Switcher (Inches / CM) -->
-                                <div style="display:flex; align-items:center; gap:4px; border: 1px solid var(--border-crisp); padding: 2px; background: #FAF9FC;">
-                                    <button type="button" id="unit-inch-btn" class="unit-toggle-btn is-active" style="padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: none; cursor: pointer; background: var(--brand-deep); color: #FFFFFF;">
-                                        INCHES
-                                    </button>
-                                    <button type="button" id="unit-cm-btn" class="unit-toggle-btn" style="padding: 4px 10px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border: none; cursor: pointer; background: transparent; color: var(--text-primary);">
-                                        CM
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Matrix Table -->
-                            <div style="overflow-x: auto; border: 1px solid var(--border-crisp);">
-                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
-                                    <thead>
-                                        <tr style="background: #0B0910; color: #FFFFFF; font-family: var(--font-mono); text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">
-                                            <th style="padding: 10px 14px; border-right: 1px solid #23202E;">SIZE</th>
-                                            <th style="padding: 10px 14px; border-right: 1px solid #23202E;">CHEST (<span class="unit-label">IN</span>)</th>
-                                            <th style="padding: 10px 14px; border-right: 1px solid #23202E;">LENGTH (<span class="unit-label">IN</span>)</th>
-                                            <th style="padding: 10px 14px;">SHOULDER (<span class="unit-label">IN</span>)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($sizeChart['measurements'] as $row): 
-                                            $size = $row['size'] ?? '';
-                                            $chest = (float)($row['chest_inch'] ?? $row['chest'] ?? 0);
-                                            $len = (float)($row['length_inch'] ?? $row['length'] ?? 0);
-                                            $shld = (float)($row['shoulder_inch'] ?? $row['shoulder'] ?? 0);
-                                        ?>
-                                            <tr style="border-bottom: 1px solid var(--border-crisp); font-family: var(--font-mono);">
-                                                <td style="padding: 10px 14px; font-weight: 800; background: #FAF9FC; border-right: 1px solid var(--border-crisp);"><?= e($size) ?></td>
-                                                <td style="padding: 10px 14px; border-right: 1px solid var(--border-crisp);" class="val-chest" data-val-inch="<?= $chest ?>"><?= $chest ?> in</td>
-                                                <td style="padding: 10px 14px; border-right: 1px solid var(--border-crisp);" class="val-length" data-val-inch="<?= $len ?>"><?= $len ?> in</td>
-                                                <td style="padding: 10px 14px;" class="val-shoulder" data-val-inch="<?= $shld ?>"><?= $shld ?> in</td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <?php if (!empty($sizeChart['notes'])): ?>
-                                <div style="margin-top: 16px; padding: 12px 14px; background: #FAF9FC; border-left: 3px solid var(--brand-deep); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-                                    <strong style="color: var(--text-primary); text-transform: uppercase; font-family: var(--font-mono); font-size: 10px; display: block; margin-bottom: 4px;">FIT NOTES & SIZING RECOMMENDATION:</strong>
-                                    <?= nl2br(e($sizeChart['notes'])) ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <div style="margin-top: 16px; font-size: 11px; color: #8C869B; font-family: var(--font-mono); line-height: 1.5;">
-                                &bull; Chest: Measure around fullest part of chest, tape horizontal.<br>
-                                &bull; Length: Measure from highest point of shoulder straight to hem.<br>
-                                &bull; Shoulder: Measure from shoulder tip across back to opposite shoulder tip.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
         <?php else: ?>
             <div style="text-align:center; padding: 80px 20px;">
                 <h2 style="font-family: 'Archivo Black', sans-serif; font-size: 32px;">PRODUCT NOT FOUND</h2>

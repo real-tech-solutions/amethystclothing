@@ -4,9 +4,11 @@
  * GET or POST /ajax/filter_products.php
  */
 
-header('Content-Type: application/json; charset=utf-8');
+if (!headers_sent()) {
+    header('Content-Type: application/json; charset=utf-8');
+}
 
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
@@ -33,16 +35,6 @@ try {
             $sizes = array_filter(array_map('trim', $input['sizes']));
         } else if (is_string($input['sizes'])) {
             $sizes = array_filter(array_map('trim', explode(',', $input['sizes'])));
-        }
-    }
-
-    // Parse colors
-    $colors = [];
-    if (!empty($input['colors'])) {
-        if (is_array($input['colors'])) {
-            $colors = array_filter(array_map('trim', $input['colors']));
-        } else if (is_string($input['colors'])) {
-            $colors = array_filter(array_map('trim', explode(',', $input['colors'])));
         }
     }
 
@@ -96,18 +88,6 @@ try {
         $where[] = "EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND pv.size_code IN ($sizeHolders) AND pv.is_active = 1)";
         foreach ($sizes as $s) {
             $params[] = $s;
-        }
-    }
-
-    // Color Filter
-    if (!empty($colors)) {
-        $colorHolders = implode(',', array_fill(0, count($colors), '?'));
-        $where[] = "EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.color_name IN ($colorHolders) OR pv.color_hex IN ($colorHolders)) AND pv.is_active = 1)";
-        foreach ($colors as $c) {
-            $params[] = $c;
-        }
-        foreach ($colors as $c) {
-            $params[] = $c;
         }
     }
 
@@ -226,7 +206,6 @@ try {
             'min_price' => $minPrice,
             'max_price' => $maxPrice,
             'sizes'     => $sizes,
-            'colors'    => $colors,
             'in_stock'  => $inStock,
             'sort'      => $sort
         ],

@@ -41,6 +41,10 @@ function lang_strings(): array
 
             // Navigation
             'nav_shop_all'        => 'SHOP ALL',
+            'nav_categories'      => 'CATEGORIES',
+            'nav_about'           => 'ABOUT US',
+            'nav_support'         => 'SUPPORT & GUIDES',
+            'nav_contact'         => 'CONTACT US',
             'nav_baddie'          => 'BADDIE',
             'nav_oversized'       => 'OVERSIZED',
             'nav_luxury'          => 'LUXURY MINDSET',
@@ -73,7 +77,7 @@ function lang_strings(): array
 
             // Products & Catalog
             'new_arrivals_tag'    => 'LATEST RELEASES',
-            'new_arrivals_title'  => 'FEATURED T-SHIRTS & STREETWEAR',
+            'new_arrivals_title'  => 'FEATURED PRODUCTS & APPAREL',
             'view_all_arrow'      => 'VIEW ALL PRODUCTS →',
             'view_details'        => 'VIEW FIT',
             'spec_material'       => 'Combed Cotton',
@@ -90,8 +94,9 @@ function lang_strings(): array
             'out_of_stock'        => 'OUT OF STOCK',
             'add_to_bag'          => 'ADD TO BAG',
             'added_to_bag'        => 'ADDED TO BAG',
+            'buy_now'             => 'BUY NOW',
             'buy_now_guest'       => 'BUY NOW VIA GUEST CHECKOUT',
-            'tech_specs_title'    => 'GARMENT SPECIFICATIONS // TECH SHEET',
+            'tech_specs_title'    => 'PRODUCT DETAILS // TECH SHEET',
             'material_label'      => 'MATERIAL',
             'gsm_label'           => 'GSM / WEIGHT',
             'colour_label'        => 'COLOUR',
@@ -127,6 +132,10 @@ function lang_strings(): array
 
             // Navigation
             'nav_shop_all'        => 'සියල්ල බලන්න',
+            'nav_categories'      => 'කාණ්ඩ',
+            'nav_about'           => 'අප ගැන',
+            'nav_support'         => 'සහාය සහ මාර්ගෝපදේශ',
+            'nav_contact'         => 'සම්බන්ධ වන්න',
             'nav_baddie'          => 'බැඩී / කැරලිකාර',
             'nav_oversized'       => '220 GSM ඕවර්සයිස්',
             'nav_luxury'          => 'ලක්ශරි මයින්ඩ්සෙට්',
@@ -159,7 +168,7 @@ function lang_strings(): array
 
             // Products & Catalog
             'new_arrivals_tag'    => 'අලුත්ම විලාසිතා',
-            'new_arrivals_title'  => 'සුවිශේෂී ටී-ෂර්ට් එකතුව',
+            'new_arrivals_title'  => 'විශේෂිත නිෂ්පාදන සහ ඇඳුම්',
             'view_all_arrow'      => 'සියලුම නිෂ්පාදන බලන්න →',
             'view_details'        => 'විස්තර බලන්න',
             'spec_material'       => 'කෝම්බ්ඩ් කපු',
@@ -176,8 +185,9 @@ function lang_strings(): array
             'out_of_stock'        => 'තොග අවසන් (OUT OF STOCK)',
             'add_to_bag'          => 'බෑගයට දමන්න',
             'added_to_bag'        => 'බෑගයට එක් විය',
+            'buy_now'             => 'දැන් මිලදී ගන්න',
             'buy_now_guest'       => 'ගෙස්ට් චෙක්අවුට් මඟින් දැන්ම ගන්න',
-            'tech_specs_title'    => 'නිෂ්පාදන තාක්ෂණික විස්තර',
+            'tech_specs_title'    => 'නිෂ්පාදන විස්තර // තාක්ෂණික පත්‍රිකාව',
             'material_label'      => 'රෙදි වර්ගය',
             'gsm_label'           => 'GSM / බර',
             'colour_label'        => 'වර්ණය',

@@ -39,16 +39,8 @@ if (empty($category['parent_id'])) {
     $subcategories = $subStmt->fetchAll();
 }
 
-// 2. Fetch distinct sizes & colors
+// 2. Fetch distinct sizes
 $availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-
-$colorRows = $pdo->query("
-    SELECT DISTINCT color_name, color_hex
-    FROM product_variants
-    WHERE is_active = 1 AND color_name IS NOT NULL AND color_hex IS NOT NULL
-    GROUP BY color_name, color_hex
-    ORDER BY color_name ASC
-")->fetchAll();
 
 // 3. Preload initial products for this category (including its children if parent)
 $pStmt = $pdo->prepare("
@@ -109,11 +101,14 @@ $catBanner = !empty($category['banner_url'])
             <aside class="catalog-sidebar" id="catalog-sidebar">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;" class="catalog-sidebar__header">
                     <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;">
-                        FILTERS & REFINEMENTS
+                        FILTERS &amp; REFINEMENTS
                     </span>
-                    <button type="button" id="catalog-clear-all" style="background:none; border:none; cursor:pointer; font-family:var(--font-mono); font-size:10px; color:var(--brand-deep); text-decoration:underline; font-weight:700;">
-                        CLEAR ALL
-                    </button>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button type="button" id="catalog-clear-all" style="background:none; border:none; cursor:pointer; font-family:var(--font-mono); font-size:10px; color:var(--brand-deep); text-decoration:underline; font-weight:700;">
+                            CLEAR ALL
+                        </button>
+                        <button type="button" id="mobile-filter-close" class="mobile-filter-close" aria-label="Close filters" style="background:none; border:none; cursor:pointer; font-size:22px; line-height:1; color:var(--text-primary); padding:0 4px;">&times;</button>
+                    </div>
                 </div>
 
                 <!-- Hidden locked category input -->
@@ -148,12 +143,12 @@ $catBanner = !empty($category['banner_url'])
                     </div>
                 <?php endif; ?>
 
-                <!-- 2. Price Range Tiers -->
+                <!-- 2. Price Range -->
                 <div class="catalog-filter-group">
                     <div class="catalog-filter-title">
                         <span>PRICE (LKR)</span>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                         <div>
                             <input type="number" id="filter-min-price" placeholder="Min" step="100" min="0"
                                    style="width:100%; padding:6px 8px; font-size:12px; border:1px solid var(--border-crisp); border-radius:0; box-sizing:border-box;">
@@ -162,11 +157,6 @@ $catBanner = !empty($category['banner_url'])
                             <input type="number" id="filter-max-price" placeholder="Max" step="100" min="0"
                                    style="width:100%; padding:6px 8px; font-size:12px; border:1px solid var(--border-crisp); border-radius:0; box-sizing:border-box;">
                         </div>
-                    </div>
-                    <div class="filter-pill-grid">
-                        <button type="button" class="filter-pill price-tier-btn" data-min="" data-max="2500">&lt; 2,500</button>
-                        <button type="button" class="filter-pill price-tier-btn" data-min="2500" data-max="3500">2,500 - 3,500</button>
-                        <button type="button" class="filter-pill price-tier-btn" data-min="3500" data-max="">&gt; 3,500</button>
                     </div>
                 </div>
 
@@ -184,25 +174,7 @@ $catBanner = !empty($category['banner_url'])
                     </div>
                 </div>
 
-                <!-- 4. Colors -->
-                <?php if (!empty($colorRows)): ?>
-                    <div class="catalog-filter-group">
-                        <div class="catalog-filter-title">
-                            <span>COLORS</span>
-                        </div>
-                        <div class="filter-swatch-grid" id="filter-colors-container">
-                            <?php foreach ($colorRows as $col): ?>
-                                <button type="button" class="filter-swatch color-filter-btn" 
-                                        data-color-name="<?= e($col['color_name']) ?>"
-                                        data-color-hex="<?= e($col['color_hex']) ?>"
-                                        title="<?= e($col['color_name']) ?>"
-                                        style="background-color: <?= e($col['color_hex']) ?>;"></button>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <!-- 5. Availability Checkbox -->
+                <!-- 4. Availability Checkbox -->
                 <div class="catalog-filter-group">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; user-select:none;">
                         <input type="checkbox" id="filter-instock-checkbox" style="border-radius:0;">

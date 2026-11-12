@@ -843,22 +843,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let filterTimeout = null;
 
-        // Mobile toggle
+        // Mobile filter drawer toggle & close
         if (mobileFilterToggle && catalogSidebar) {
             mobileFilterToggle.style.display = 'inline-block';
             mobileFilterToggle.addEventListener('click', () => {
                 catalogSidebar.classList.toggle('is-open');
             });
         }
+        const mobileFilterClose = document.getElementById('mobile-filter-close');
+        if (mobileFilterClose && catalogSidebar) {
+            mobileFilterClose.addEventListener('click', () => {
+                catalogSidebar.classList.remove('is-open');
+            });
+        }
 
         const getSelectedSizes = () => {
             const activeSizeBtns = document.querySelectorAll('.size-filter-btn.is-active');
             return Array.from(activeSizeBtns).map(btn => btn.dataset.size).filter(Boolean);
-        };
-
-        const getSelectedColors = () => {
-            const activeColorBtns = document.querySelectorAll('.color-filter-btn.is-active');
-            return Array.from(activeColorBtns).map(btn => btn.dataset.colorName || btn.dataset.colorHex).filter(Boolean);
         };
 
         const getActiveCategory = () => {
@@ -888,11 +889,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags.push(`<span class="active-tag">Size: ${s} <button type="button" data-tag-type="size" data-val="${s}">&times;</button></span>`);
                 });
             }
-            if (state.colors && state.colors.length > 0) {
-                state.colors.forEach(c => {
-                    tags.push(`<span class="active-tag">Color: ${c} <button type="button" data-tag-type="color" data-val="${c}">&times;</button></span>`);
-                });
-            }
             if (state.in_stock) {
                 tags.push(`<span class="active-tag">In-Stock Only <button type="button" data-tag-type="in_stock">&times;</button></span>`);
             }
@@ -914,13 +910,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (type === 'price') {
                         if (filterMinPrice) filterMinPrice.value = '';
                         if (filterMaxPrice) filterMaxPrice.value = '';
-                        document.querySelectorAll('.price-tier-btn').forEach(b => b.classList.remove('is-active'));
                     } else if (type === 'size') {
                         const sBtn = document.querySelector(`.size-filter-btn[data-size="${val}"]`);
                         if (sBtn) sBtn.classList.remove('is-active');
-                    } else if (type === 'color') {
-                        const cBtn = document.querySelector(`.color-filter-btn[data-color-name="${val}"], .color-filter-btn[data-color-hex="${val}"]`);
-                        if (cBtn) cBtn.classList.remove('is-active');
                     } else if (type === 'in_stock') {
                         if (filterInStock) filterInStock.checked = false;
                     }
@@ -936,11 +928,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const min_price = filterMinPrice ? filterMinPrice.value.trim() : '';
             const max_price = filterMaxPrice ? filterMaxPrice.value.trim() : '';
             const sizes = getSelectedSizes();
-            const colors = getSelectedColors();
             const in_stock = filterInStock && filterInStock.checked ? 1 : 0;
             const sort = catalogSortSelect ? catalogSortSelect.value : 'featured';
 
-            const filterState = { q, category, min_price, max_price, sizes, colors, in_stock, sort };
+            const filterState = { q, category, min_price, max_price, sizes, in_stock, sort };
             renderActiveTags(filterState);
 
             // Update browser URL query params via history.replaceState
@@ -950,7 +941,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (min_price) params.set('min_price', min_price);
             if (max_price) params.set('max_price', max_price);
             if (sizes.length > 0) params.set('sizes', sizes.join(','));
-            if (colors.length > 0) params.set('colors', colors.join(','));
             if (in_stock) params.set('in_stock', '1');
             if (sort && sort !== 'featured') params.set('sort', sort);
 
@@ -969,7 +959,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     min_price,
                     max_price,
                     sizes: sizes.join(','),
-                    colors: colors.join(','),
                     in_stock,
                     sort
                 }).toString()
@@ -982,6 +971,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (catalogCountBadge) {
                         catalogCountBadge.textContent = `${data.count} ITEMS FOUND`;
                     }
+
+                    const paginationBar = document.getElementById('catalog-pagination-bar');
+                    if (paginationBar) paginationBar.style.display = 'none';
 
                     // Reset button inside empty state
                     const resetBtnInner = document.getElementById('btn-reset-filters') || document.getElementById('btn-reset-filters-inner');
@@ -1007,8 +999,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.classList.toggle('is-active', btn.dataset.category === 'all');
             });
             document.querySelectorAll('.size-filter-btn').forEach(btn => btn.classList.remove('is-active'));
-            document.querySelectorAll('.color-filter-btn').forEach(btn => btn.classList.remove('is-active'));
-            document.querySelectorAll('.price-tier-btn').forEach(btn => btn.classList.remove('is-active'));
 
             triggerFilter();
         };
@@ -1037,24 +1027,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Price Tier Buttons
-        document.querySelectorAll('.price-tier-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const isCurrentlyActive = btn.classList.contains('is-active');
-                document.querySelectorAll('.price-tier-btn').forEach(b => b.classList.remove('is-active'));
-
-                if (!isCurrentlyActive) {
-                    btn.classList.add('is-active');
-                    if (filterMinPrice) filterMinPrice.value = btn.dataset.min || '';
-                    if (filterMaxPrice) filterMaxPrice.value = btn.dataset.max || '';
-                } else {
-                    if (filterMinPrice) filterMinPrice.value = '';
-                    if (filterMaxPrice) filterMaxPrice.value = '';
-                }
-                triggerFilter();
-            });
-        });
-
         // Category Buttons
         document.querySelectorAll('.filter-cat-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1066,14 +1038,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Size Pills (multi-select toggle)
         document.querySelectorAll('.size-filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                btn.classList.toggle('is-active');
-                triggerFilter();
-            });
-        });
-
-        // Color Swatches (multi-select toggle)
-        document.querySelectorAll('.color-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 btn.classList.toggle('is-active');
                 triggerFilter();
@@ -1097,7 +1061,6 @@ document.addEventListener('DOMContentLoaded', () => {
             min_price: filterMinPrice ? filterMinPrice.value.trim() : '',
             max_price: filterMaxPrice ? filterMaxPrice.value.trim() : '',
             sizes: getSelectedSizes(),
-            colors: getSelectedColors(),
             in_stock: filterInStock && filterInStock.checked ? 1 : 0,
             sort: catalogSortSelect ? catalogSortSelect.value : 'featured'
         });

@@ -7,7 +7,7 @@ $pageTitle       = $pageTitle ?? env('APP_NAME', 'Amethystclothing.lk');
 $pageDescription = $pageDescription ?? env('APP_SLOGAN', 'Just own Your Style!');
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= e(current_lang() ?? 'en') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -53,7 +53,9 @@ $pageDescription = $pageDescription ?? env('APP_SLOGAN', 'Just own Your Style!')
                     <strong class="cart-drawer__subtotal-value" id="cart-drawer-subtotal">Rs. 0.00</strong>
                 </div>
                 <p class="cart-drawer__shipping-note">Taxes & shipping calculated at checkout</p>
-                <a href="<?= base_url('checkout') ?>" class="btn btn--brand btn--full" id="cart-drawer-checkout-btn">PROCEED TO GUEST CHECKOUT</a>
+                <a href="<?= base_url('checkout') ?>" class="btn btn--brand btn--full" id="cart-drawer-checkout-btn">
+                    <?= is_customer_logged_in() ? 'PROCEED TO CHECKOUT' : 'PROCEED TO GUEST CHECKOUT' ?>
+                </a>
                 <button type="button" class="btn btn--outline btn--full cart-drawer__close" style="margin-top: 8px;">CONTINUE SHOPPING</button>
             </div>
         </div>

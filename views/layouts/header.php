@@ -88,35 +88,66 @@ try {
             <img src="<?= asset_url('images/logo_b-color.png') ?>" alt="AMETHYST — <?= e(__('slogan')) ?>" class="site-header__logo-img" width="180" height="42">
         </a>
 
-        <!-- Main Desktop Navigation -->
+        <!-- Main Desktop Navigation (SHOP ALL | CATEGORIES | ABOUT US | SUPPORT & GUIDES | CONTACT US) -->
         <nav class="site-nav" id="site-nav" aria-label="Main Navigation">
             <ul class="site-nav__list">
+                <!-- 1. Shop All -->
                 <li class="site-nav__item">
                     <a href="<?= base_url('shop') ?>" class="site-nav__link"><?= e(__('nav_shop_all')) ?></a>
                 </li>
-                <?php foreach ($navCategories as $nc): ?>
-                    <?php if (!empty($nc['subcategories'])): ?>
-                        <li class="site-nav__item site-nav__item--has-sub">
-                            <a href="<?= base_url('category/' . $nc['slug']) ?>" class="site-nav__link">
-                                <?= e($nc['name']) ?> <span style="font-size:9px;margin-left:2px;">▾</span>
+
+                <!-- 2. Categories Hover Dropdown with Hierarchy -->
+                <li class="site-nav__item site-nav__item--has-sub">
+                    <a href="<?= base_url('categories') ?>" class="site-nav__link">
+                        <?= e(__('nav_categories')) ?> <span style="font-size:9px;margin-left:3px;">▾</span>
+                    </a>
+                    <div class="site-nav__categories-menu">
+                        <div class="site-nav__categories-grid">
+                            <?php foreach ($navCategories as $nc): ?>
+                                <div class="site-nav__category-col">
+                                    <a href="<?= base_url('category/' . $nc['slug']) ?>" class="site-nav__cat-parent-link">
+                                        <?= e($nc['name']) ?>
+                                    </a>
+                                    <?php if (!empty($nc['subcategories'])): ?>
+                                        <ul class="site-nav__cat-sub-list">
+                                            <?php foreach ($nc['subcategories'] as $sub): ?>
+                                                <li>
+                                                    <a href="<?= base_url('category/' . $sub['slug']) ?>">
+                                                        <?= e($sub['name']) ?>
+                                                    </a>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="site-nav__categories-foot">
+                            <a href="<?= base_url('categories') ?>" class="site-nav__view-all-cats">
+                                VIEW ALL COLLECTIONS &amp; ARCHIVES &rarr;
                             </a>
-                            <ul class="site-nav__sub-menu">
-                                <li><a href="<?= base_url('category/' . $nc['slug']) ?>">All <?= e($nc['name']) ?></a></li>
-                                <?php foreach ($nc['subcategories'] as $sub): ?>
-                                    <li><a href="<?= base_url('category/' . $sub['slug']) ?>"><?= e($sub['name']) ?></a></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </li>
-                    <?php else: ?>
-                        <li class="site-nav__item">
-                            <a href="<?= base_url('category/' . $nc['slug']) ?>" class="site-nav__link"><?= e($nc['name']) ?></a>
-                        </li>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- 3. About Us -->
+                <li class="site-nav__item">
+                    <a href="<?= base_url('about') ?>" class="site-nav__link"><?= e(__('nav_about')) ?></a>
+                </li>
+
+                <!-- 4. Support & Guides -->
+                <li class="site-nav__item">
+                    <a href="<?= base_url('support') ?>" class="site-nav__link"><?= e(__('nav_support')) ?></a>
+                </li>
+
+                <!-- 5. Contact Us -->
+                <li class="site-nav__item">
+                    <a href="<?= base_url('contact') ?>" class="site-nav__link"><?= e(__('nav_contact')) ?></a>
+                </li>
             </ul>
         </nav>
 
-        <!-- Header Actions -->
+        <!-- Header Actions (Search | Wishlist | Account | Bag) -->
         <div class="site-header__actions">
             <!-- Predictive Search Trigger -->
             <div class="header-search" id="header-search">
@@ -188,22 +219,33 @@ try {
         </div>
         <ul class="mobile-nav-drawer__list">
             <li><a href="<?= base_url('shop') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_shop_all')) ?></a></li>
+            <li class="mobile-nav-drawer__group-title">
+                <a href="<?= base_url('categories') ?>" style="display:flex;justify-content:space-between;align-items:center;color:inherit;text-decoration:none;width:100%;">
+                    <span><?= e(__('nav_categories')) ?></span>
+                    <span style="font-size:11px;font-family:var(--font-mono);color:var(--brand-deep);">&rarr;</span>
+                </a>
+            </li>
             <?php foreach ($navCategories as $nc): ?>
-                <li>
-                    <a href="<?= base_url('category/' . $nc['slug']) ?>" class="mobile-nav-drawer__link">
+                <li style="padding-left:14px;">
+                    <a href="<?= base_url('category/' . $nc['slug']) ?>" class="mobile-nav-drawer__link" style="font-size:13px;font-weight:600;">
                         <?= e($nc['name']) ?>
                     </a>
+                    <?php if (!empty($nc['subcategories'])): ?>
+                        <ul style="list-style:none;padding-left:14px;margin:4px 0 8px;">
+                            <?php foreach ($nc['subcategories'] as $sub): ?>
+                                <li>
+                                    <a href="<?= base_url('category/' . $sub['slug']) ?>" class="mobile-nav-drawer__link" style="font-size:12px;color:#8C869B;padding:4px 0;">
+                                        &bull; <?= e($sub['name']) ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
                 </li>
-                <?php if (!empty($nc['subcategories'])): ?>
-                    <?php foreach ($nc['subcategories'] as $sub): ?>
-                        <li style="padding-left:18px;">
-                            <a href="<?= base_url('category/' . $sub['slug']) ?>" class="mobile-nav-drawer__link" style="font-size:13px;color:#8C869B;">
-                                └ <?= e($sub['name']) ?>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                <?php endif; ?>
             <?php endforeach; ?>
+            <li><a href="<?= base_url('about') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_about')) ?></a></li>
+            <li><a href="<?= base_url('support') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_support')) ?></a></li>
+            <li><a href="<?= base_url('contact') ?>" class="mobile-nav-drawer__link"><?= e(__('nav_contact')) ?></a></li>
             <li><a href="<?= base_url('track-order') ?>" class="mobile-nav-drawer__link"><?= e(__('track_order')) ?></a></li>
         </ul>
         <div class="mobile-nav-drawer__foot">

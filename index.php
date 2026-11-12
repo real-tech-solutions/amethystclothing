@@ -49,8 +49,12 @@ $router = new Router();
 // ── Public Storefront Routes ──
 $router->get('',                    __DIR__ . '/views/pages/home.php');
 $router->get('shop',               __DIR__ . '/views/pages/shop.php');
+$router->get('categories',         __DIR__ . '/views/pages/categories.php');
 $router->get('category/{slug}',    __DIR__ . '/views/pages/category.php');
 $router->get('product/{slug}',     __DIR__ . '/views/pages/product.php');
+$router->get('about',              __DIR__ . '/views/pages/about.php');
+$router->get('support',            __DIR__ . '/views/pages/support.php');
+$router->get('contact',            __DIR__ . '/views/pages/contact.php');
 $router->get('track-order',        __DIR__ . '/views/pages/track-order.php');
 $router->get('checkout',           __DIR__ . '/views/pages/checkout.php');
 $router->get('checkout-success',   __DIR__ . '/views/pages/checkout-success.php');

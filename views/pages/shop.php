@@ -20,11 +20,6 @@ $activeSizes = !empty($_GET['sizes'])
     : [];
 $activeSizes = array_filter(array_map('trim', $activeSizes));
 
-$activeColors = !empty($_GET['colors']) 
-    ? (is_array($_GET['colors']) ? $_GET['colors'] : explode(',', $_GET['colors'])) 
-    : [];
-$activeColors = array_filter(array_map('trim', $activeColors));
-
 // 1. Fetch Categories with Product Counts
 $catRows = $pdo->query("
     SELECT c.id, c.name, c.slug, c.parent_id, COUNT(DISTINCT pc.product_id) AS prod_count
@@ -38,16 +33,8 @@ $catRows = $pdo->query("
 // Total active products count
 $totalCount = (int)$pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'")->fetchColumn();
 
-// 2. Fetch Distinct Variant Sizes & Colors
+// 2. Fetch Distinct Variant Sizes
 $availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-
-$colorRows = $pdo->query("
-    SELECT DISTINCT color_name, color_hex
-    FROM product_variants
-    WHERE is_active = 1 AND color_name IS NOT NULL AND color_hex IS NOT NULL
-    GROUP BY color_name, color_hex
-    ORDER BY color_name ASC
-")->fetchAll();
 
 // 3. Initial Server-Side Product Fetch
 $where = ["p.status = 'active'"];
@@ -84,13 +71,6 @@ if (!empty($activeSizes)) {
     foreach ($activeSizes as $s) $params[] = $s;
 }
 
-if (!empty($activeColors)) {
-    $colorHolders = implode(',', array_fill(0, count($activeColors), '?'));
-    $where[] = "EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = p.id AND (pv.color_name IN ($colorHolders) OR pv.color_hex IN ($colorHolders)) AND pv.is_active = 1)";
-    foreach ($activeColors as $c) $params[] = $c;
-    foreach ($activeColors as $c) $params[] = $c;
-}
-
 $orderBy = "p.is_featured DESC, p.id ASC";
 switch ($sort) {
     case 'newest':     $orderBy = "p.created_at DESC, p.id DESC"; break;
@@ -98,6 +78,26 @@ switch ($sort) {
     case 'price_desc': $orderBy = "COALESCE(NULLIF(p.sale_price, 0), p.base_price) DESC, p.id ASC"; break;
     case 'rating':     $orderBy = "p.average_rating DESC, p.id ASC"; break;
 }
+
+// Count total products for pagination
+$countSql = "
+    SELECT COUNT(DISTINCT p.id)
+    FROM products p
+    LEFT JOIN product_specifications ps ON p.id = ps.product_id
+    LEFT JOIN product_categories pc ON p.id = pc.product_id
+    LEFT JOIN categories c ON pc.category_id = c.id
+    WHERE " . implode(' AND ', $where) . "
+";
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$filteredTotal = (int)$countStmt->fetchColumn();
+
+// Pagination variables
+$page = max(1, (int)($_GET['page'] ?? 1));
+$perPage = 8;
+$totalPages = max(1, (int)ceil($filteredTotal / $perPage));
+if ($page > $totalPages && $filteredTotal > 0) $page = $totalPages;
+$offset = ($page - 1) * $perPage;
 
 $sql = "
     SELECT 
@@ -115,6 +115,7 @@ $sql = "
     WHERE " . implode(' AND ', $where) . "
     GROUP BY p.id
     ORDER BY {$orderBy}
+    LIMIT {$perPage} OFFSET {$offset}
 ";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -131,7 +132,7 @@ $products = $stmt->fetchAll();
                 <p class="section-subtitle">Heavyweight 220–240 GSM oversized streetwear, precision graphic prints, and essential minimalist silhouettes.</p>
             </div>
             <div class="section-head__right">
-                <span class="product-count-badge" id="catalog-count-badge"><?= count($products) ?> ITEMS FOUND</span>
+                <span class="product-count-badge" id="catalog-count-badge"><?= $filteredTotal ?> ITEMS FOUND</span>
             </div>
         </div>
 
@@ -141,11 +142,14 @@ $products = $stmt->fetchAll();
             <aside class="catalog-sidebar" id="catalog-sidebar">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;" class="catalog-sidebar__header">
                     <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;">
-                        FILTERS & REFINEMENTS
+                        FILTERS &amp; REFINEMENTS
                     </span>
-                    <button type="button" id="catalog-clear-all" style="background:none; border:none; cursor:pointer; font-family:var(--font-mono); font-size:10px; color:var(--brand-deep); text-decoration:underline; font-weight:700;">
-                        CLEAR ALL
-                    </button>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button type="button" id="catalog-clear-all" style="background:none; border:none; cursor:pointer; font-family:var(--font-mono); font-size:10px; color:var(--brand-deep); text-decoration:underline; font-weight:700;">
+                            CLEAR ALL
+                        </button>
+                        <button type="button" id="mobile-filter-close" class="mobile-filter-close" aria-label="Close filters" style="background:none; border:none; cursor:pointer; font-size:22px; line-height:1; color:var(--text-primary); padding:0 4px;">&times;</button>
+                    </div>
                 </div>
 
                 <!-- 1. Search Query Input -->
@@ -187,7 +191,7 @@ $products = $stmt->fetchAll();
                     <div class="catalog-filter-title">
                         <span>PRICE (LKR)</span>
                     </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                         <div>
                             <input type="number" id="filter-min-price" value="<?= $minPrice !== null ? $minPrice : '' ?>" placeholder="Min" step="100" min="0"
                                    style="width:100%; padding:6px 8px; font-size:12px; border:1px solid var(--border-crisp); border-radius:0; box-sizing:border-box;">
@@ -196,11 +200,6 @@ $products = $stmt->fetchAll();
                             <input type="number" id="filter-max-price" value="<?= $maxPrice !== null ? $maxPrice : '' ?>" placeholder="Max" step="100" min="0"
                                    style="width:100%; padding:6px 8px; font-size:12px; border:1px solid var(--border-crisp); border-radius:0; box-sizing:border-box;">
                         </div>
-                    </div>
-                    <div class="filter-pill-grid">
-                        <button type="button" class="filter-pill price-tier-btn" data-min="" data-max="2500">&lt; 2,500</button>
-                        <button type="button" class="filter-pill price-tier-btn" data-min="2500" data-max="3500">2,500 - 3,500</button>
-                        <button type="button" class="filter-pill price-tier-btn" data-min="3500" data-max="">&gt; 3,500</button>
                     </div>
                 </div>
 
@@ -220,27 +219,7 @@ $products = $stmt->fetchAll();
                     </div>
                 </div>
 
-                <!-- 5. Colors -->
-                <?php if (!empty($colorRows)): ?>
-                    <div class="catalog-filter-group">
-                        <div class="catalog-filter-title">
-                            <span>COLORS</span>
-                        </div>
-                        <div class="filter-swatch-grid" id="filter-colors-container">
-                            <?php foreach ($colorRows as $col): 
-                                $isColSelected = in_array($col['color_name'], $activeColors) || in_array($col['color_hex'], $activeColors);
-                            ?>
-                                <button type="button" class="filter-swatch color-filter-btn <?= $isColSelected ? 'is-active' : '' ?>" 
-                                        data-color-name="<?= e($col['color_name']) ?>"
-                                        data-color-hex="<?= e($col['color_hex']) ?>"
-                                        title="<?= e($col['color_name']) ?>"
-                                        style="background-color: <?= e($col['color_hex']) ?>;"></button>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <!-- 6. Availability Checkbox -->
+                <!-- 5. Availability Checkbox -->
                 <div class="catalog-filter-group">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; user-select:none;">
                         <input type="checkbox" id="filter-instock-checkbox" <?= $inStock ? 'checked' : '' ?> style="border-radius:0;">
@@ -328,6 +307,33 @@ $products = $stmt->fetchAll();
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
+
+                <!-- Server-Side Pagination Bar -->
+                <?php if ($totalPages > 1): ?>
+                    <div class="pagination-bar" id="catalog-pagination-bar" style="margin-top: 36px; display:flex; justify-content:center; align-items:center; gap:8px;">
+                        <?php if ($page > 1): 
+                            $prevParams = $_GET; $prevParams['page'] = $page - 1;
+                        ?>
+                            <a href="?<?= http_build_query($prevParams) ?>" class="btn btn--outline btn--sm" style="border-radius:0; padding:6px 14px; font-family:var(--font-mono);">&larr; PREV</a>
+                        <?php endif; ?>
+
+                        <?php for ($i = 1; $i <= $totalPages; $i++): 
+                            $pageParams = $_GET; $pageParams['page'] = $i;
+                            $isCur = ($i === $page);
+                        ?>
+                            <a href="?<?= http_build_query($pageParams) ?>" 
+                               style="display:inline-block; padding:6px 12px; font-family:var(--font-mono); font-size:12px; font-weight:700; text-decoration:none; border:1px solid var(--border-crisp); <?= $isCur ? 'background:var(--brand-deep); color:#FFF; border-color:var(--brand-deep);' : 'background:#FFF; color:var(--text-primary);' ?>">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor; ?>
+
+                        <?php if ($page < $totalPages): 
+                            $nextParams = $_GET; $nextParams['page'] = $page + 1;
+                        ?>
+                            <a href="?<?= http_build_query($nextParams) ?>" class="btn btn--outline btn--sm" style="border-radius:0; padding:6px 14px; font-family:var(--font-mono);">NEXT &rarr;</a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </main>
         </div>
     </div>
